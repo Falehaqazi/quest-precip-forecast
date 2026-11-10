@@ -21,7 +21,7 @@ import numpy as np
 from . import catalogue
 from .encode import codes_to_png, quantise
 from .gribio import Field, decode, expect_accumulated_tp
-from .process import deaccumulate, iso_utc, metres_to_mm, valid_time
+from .process import MM_PER_M, deaccumulate, iso_utc, metres_to_mm, valid_time
 
 SCHEMA_VERSION = 2
 TP_SCALE_MM = 0.05          # see DECISIONS D7
@@ -85,6 +85,9 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
     entries = []
     for iv in intervals:
         codes, clipped = quantise(iv.values, TP_SCALE_MM)
+        # The coarser of the two packing steps that were differenced, in mm. A difference of
+        # one such step can be a true increment of almost nothing (DECISIONS D15).
+        quantum_mm = MM_PER_M * max(fields[iv.start_step].quantum, fields[iv.end_step].quantum)
         name = f"{iv.end_step:03d}.png"
         (layer_dir / name).write_bytes(codes_to_png(codes))
         entries.append({
@@ -93,6 +96,7 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
             "end_utc": iso_utc(valid_time(ref, iv.end_step)),
             "file": f"tp_interval/{name}",
             "max": round(float(iv.values.max()), 2),
+            "source_quantum": round(quantum_mm, 5),
             "negative_count": iv.negative_count,
             "most_negative": round(iv.most_negative, 3),
             "clipped_count": clipped,
@@ -123,6 +127,7 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
                         "title": "Mean precipitation rate",
                         "formula": "displayed = value / interval hours"},
             "legend": {"type": "threshold", "applies_to": "displayed", "transparent_below": TP_LEGEND[0][0],
+                       "also_transparent": "stored value <= the interval's source_quantum",
                        "stops": [{"from": v, "color": c} for v, c in TP_LEGEND]},
             "intervals": entries,
         }],

@@ -143,11 +143,11 @@ GRIB2 does not store the unit string; it comes from parameter tables.
   **To be confirmed by a test against an independently known value.**
 - `tprate`: WMO table 4.2 says kg m⁻² s⁻¹ (= mm/s). Scale 2⁻¹⁸ × 4095 ≈ 0.0156
   → 56 mm/h max, plausible. Same caveat.
-- Packing precision of `tp` is 2^E metres: ≈0.06 mm at step 6, ≈0.24 mm at step
-  150 (coarser later, not yet checked at 360 h). Per-interval amounts are a
-  difference of two such fields, so late-lead intervals carry sub-mm
-  quantisation noise and can come out slightly negative. This is a property of
-  the source data.
+- Packing precision of `tp` is 2^E metres, chosen per field from its maximum.
+  Measured over the whole 2026-11-10 00z run: 0.03 mm at +3 h, 0.06 mm from
+  +6 h, 0.12 mm from +18 h, 0.24 mm from +120 h to +360 h. Per-interval amounts
+  are a difference of two such fields. This is a property of the source data;
+  DECISIONS D15 records what it does to light precipitation on the map.
 
 ### 5.5 Grid (verified from GRIB section 3 of the 0.25° file)
 

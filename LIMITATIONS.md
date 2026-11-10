@@ -32,12 +32,21 @@ Last updated 2026-11-10, after the first deployment
   to 297 mm in one 6 h interval for one cell (15.25° N, 82.75° E, +222–228 h).
   The neighbouring cells are consistent with it, so it is model output and not
   a decoding artefact, but I have no way to say whether it is realistic.
-- **Quantisation.** Source `tp` is packed in 12 bits with precision 2^E m:
-  about 0.06 mm at step 6 and 0.24 mm at step 150 (measured from headers).
-  Interval amounts are differences of two such fields. In the 2026-11-10 00z
-  run the most negative raw difference was −0.244 mm (interval ending +288 h).
-  Negatives are clamped to 0; count and size are recorded per interval in the
-  manifest. The site then rounds to 0.05 mm on top of that.
+- **Quantisation.** Source `tp` is packed in 12 bits. In the 2026-11-10 00z run
+  the packing step was 0.03 mm at +3 h, 0.06 mm from +6 h, 0.12 mm from +18 h
+  and 0.24 mm from +120 h (it depends on each field's maximum, so other runs
+  will differ). Interval amounts are differences of two such fields, so beyond
+  +18 h nothing between 0 and 0.12 mm can exist in the data, and light amounts
+  are a few steps at best. See DECISIONS D15 for what this did to the map.
+- **Light precipitation is not drawn.** Mean rates below 0.1 mm/h, and any
+  amount of a single packing step, are transparent. That hides about 11 % of
+  the run's total precipitation (unweighted sum) spread thinly over a third of
+  the globe. "No colour" means "less than 0.1 mm/h", not "dry".
+- **Unexplained negatives.** 3,533 cells have `tp` one packing step *lower* at
+  +288 h than at +282 h although both fields use the same step, and 866 cells
+  likewise at +12 h. Accumulated precipitation should not decrease. I do not
+  know the cause (interpolation to the 0.25° grid is a guess, not a finding).
+  Negatives are clamped to 0 and counted per interval in the manifest.
 - **Interval length changes at 144 h** from 3 h to 6 h. The map colours the
   mean rate (mm/h), so a colour means the same rate before and after the
   switch. But a 6 h mean flattens short bursts more than a 3 h mean, so peak

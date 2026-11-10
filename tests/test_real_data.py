@@ -35,6 +35,17 @@ def test_expectation_check_catches_wrong_window(tp):
         expect_accumulated_tp(tp[6], 3)
 
 
+def test_packing_quantum_read_from_real_headers(tp):
+    # 12-bit packing with binary scale 2^-15 m at step 3 and 2^-14 m at step 6 (see SPEC 5.4)
+    assert tp[0].quantum == 0.0                      # constant field, nothing packed
+    assert tp[3].quantum == 2.0 ** -15
+    assert tp[6].quantum == 2.0 ** -14
+    # every value is a whole number of quanta (reference value is 0 for these fields)
+    steps = tp[6].values / tp[6].quantum
+    assert np.abs(steps - np.rint(steps)).max() < 1e-9
+    assert steps.max() <= 4095                       # 12 bits
+
+
 def test_step_zero_is_all_zero(tp):
     assert tp[0].values.min() == 0.0 and tp[0].values.max() == 0.0
 

@@ -26,6 +26,7 @@ class Field:
     reference: datetime   # aware, UTC
     grid: Grid
     values: np.ndarray    # shape (nj, ni), row 0 = northernmost
+    quantum: float        # smallest step the packing can represent, in `units` (0 for a constant field)
 
 
 def decode(message: bytes) -> Field:
@@ -37,6 +38,11 @@ def decode(message: bytes) -> Field:
         if ec.codes_get(h, "stepUnits") != 1:  # 1 == hours
             raise ValueError("step units are not hours")
         values = ec.codes_get_values(h)
+        # Packed value = (R + X * 2^E) / 10^D with integer X, so one step of X is 2^E / 10^D.
+        if ec.codes_get(h, "bitsPerValue") == 0:
+            quantum = 0.0
+        else:
+            quantum = 2.0 ** ec.codes_get(h, "binaryScaleFactor") / 10.0 ** ec.codes_get(h, "decimalScaleFactor")
         if values.size != grid.ni * grid.nj:
             raise ValueError("value count does not match grid")
         return Field(
@@ -48,6 +54,7 @@ def decode(message: bytes) -> Field:
             reference=reference_time(ec.codes_get(h, "dataDate"), ec.codes_get(h, "dataTime")),
             grid=grid,
             values=values.reshape(grid.nj, grid.ni),
+            quantum=quantum,
         )
     finally:
         ec.codes_release(h)

@@ -72,8 +72,11 @@ async function loadCodes(i) {
 
 /** Lookup table for an interval; intervals of the same length share one. */
 function lutFor(iv) {
-  const key = String(iv.hours);
-  if (!state.luts.has(key)) state.luts.set(key, buildLut(state.layer, iv.hours));
+  // A value of one source packing step is not drawn: the true amount could be anything from
+  // almost zero up to that step, so which cells show it is noise (DECISIONS D15).
+  const hide = (iv.source_quantum || 0) * 1.01;
+  const key = `${iv.hours}|${hide}`;
+  if (!state.luts.has(key)) state.luts.set(key, buildLut(state.layer, iv.hours, hide));
   return state.luts.get(key);
 }
 
@@ -200,7 +203,7 @@ function updateReadout() {
     ['Interval', rangeUtc(iv)],
     ['Your time', rangeLocal(iv)],
     ['Grid index', `row ${sel.row}, col ${sel.col}`],
-    ['Resolution', `${state.layer.encoding.scale} ${state.layer.units} steps`],
+    ['Source precision', iv.source_quantum ? `${iv.source_quantum.toFixed(2)} ${state.layer.units} (ECMWF packing step)` : 'n/a'],
   ];
   const dl = $('readout-details');
   dl.innerHTML = '';

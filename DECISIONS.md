@@ -130,3 +130,37 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Where it lives**: the manifest's `display` block says `normalise: per_hour`;
   the browser does the division. The pipeline does not store rates, so the
   amounts remain exactly what was derived from `tp`.
+
+## D15. Nothing below 0.1 mm/h is drawn, and never a single source packing step
+- **What was checked** (run 2026-11-10 00z, raw `tp` values, all 84 intervals):
+  the faint lowest class seen on the first version (0.1–0.5 mm per interval).
+  - ECMWF packs each accumulated field in 12 bits. The step ("quantum") was
+    0.03 mm at +3 h, 0.06 mm from +6 h, **0.12 mm from +18 h and 0.24 mm from
+    +120 h**. It depends on the field's maximum, so it will differ from run to run.
+  - Up to +15 h the faint class is real model output: 0 % of it is a
+    single quantum, and 16–23 % of all cells hold a positive amount below 0.1 mm.
+    The model does put trace precipitation over about half the globe.
+  - From +18 h the quantum is larger than the 0.1 mm threshold. The data can no
+    longer hold anything between 0 and one quantum (the count of such cells drops
+    to exactly 0), and 40–63 % of everything drawn was exactly one quantum. A
+    one-quantum difference means the true increment was somewhere between
+    almost nothing and that step; which cells get it is rounding. Over the whole
+    run, **38.5 % of drawn cell-intervals were a single quantum.**
+  - It was mostly not salt-and-pepper: only 2–8 % of faint cells had no wet
+    neighbour. It is trace precipitation regions with a dithered edge and
+    interior, not random dots over dry areas.
+- **Choice**: (a) lowest class starts at 0.1 mm/h mean rate (0.3 mm per 3 h,
+  0.6 mm per 6 h), which was at least 1.2 quanta everywhere in this run;
+  (b) the pipeline writes each interval's quantum to the manifest
+  (`source_quantum`) and the browser draws nothing whose stored amount is one
+  quantum or less, so the rule still holds in a run with coarser packing.
+- **Alternative**: keep 0.1 mm and accept the noise; smooth the field (invents
+  data); raise the threshold only after +18 h (colours would again mean
+  different things at different leads).
+- **Effect, measured**: single-quantum share of drawn cells 38.5 % → 0 %. Drawn
+  area roughly halves (16–21 % of cells per interval instead of 31–49 %) and no
+  longer jumps when the packing changes. **Cost: 11 % of the run's total
+  precipitation (plain sum over cells, not area-weighted) falls below 0.1 mm/h
+  and is not coloured.** The numbers are still there on hover and click.
+- **Still coarse**: between +120 h and +144 h the lowest class is exactly two
+  quanta (0.49 mm in 3 h); later classes are a handful of quanta wide.
