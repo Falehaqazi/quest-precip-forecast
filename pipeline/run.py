@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import catalogue
+from . import catalogue, series
 from .encode import codes_to_png, quantise
 from .gribio import Field, decode, expect_accumulated_tp
 from .process import MM_PER_M, deaccumulate, iso_utc, metres_to_mm, valid_time
@@ -83,11 +83,13 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
     layer_dir = out / "tp_interval"
     layer_dir.mkdir(parents=True, exist_ok=True)
     entries = []
+    stack = []
     for iv in intervals:
         codes, clipped = quantise(iv.values, TP_SCALE_MM)
         # The coarser of the two packing steps that were differenced, in mm. A difference of
         # one such step can be a true increment of almost nothing (DECISIONS D15).
         quantum_mm = MM_PER_M * max(fields[iv.start_step].quantum, fields[iv.end_step].quantum)
+        stack.append(codes)
         name = f"{iv.end_step:03d}.png"
         (layer_dir / name).write_bytes(codes_to_png(codes))
         entries.append({
@@ -101,6 +103,12 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
             "most_negative": round(iv.most_negative, 3),
             "clipped_count": clipped,
         })
+
+    # The same codes re-cut by place, for the point time series (one small file per click).
+    series_info = series.write_tiles(layer_dir / "series", np.stack(stack))
+    series_info["path"] = "tp_interval/series/{ty}_{tx}.png"
+    series_info["addressing"] = ("ty = row // tile, tx = col // tile; "
+                                 "pixel(x = col % tile, y = k * tile + row % tile) is interval k")
 
     manifest = {
         "schema": SCHEMA_VERSION,
@@ -129,6 +137,7 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
             "legend": {"type": "threshold", "applies_to": "displayed", "transparent_below": TP_LEGEND[0][0],
                        "also_transparent": "stored value <= the interval's source_quantum",
                        "stops": [{"from": v, "color": c} for v, c in TP_LEGEND]},
+            "series": series_info,
             "intervals": entries,
         }],
     }
@@ -158,6 +167,9 @@ def main(argv=None) -> int:
     manifest = build(a.out, run, steps)
     layer = manifest["layers"][0]
     size = sum(f.stat().st_size for f in (a.out / "tp_interval").glob("*.png"))
+    s = layer["series"]
+    print(f"wrote {s['tiles_y'] * s['tiles_x']} series tiles, {s['total_bytes'] / 1e6:.1f} MB, "
+          f"largest {s['largest_bytes'] / 1e3:.0f} KB")
     worst = min(i["most_negative"] for i in layer["intervals"])
     print(f"wrote {len(layer['intervals'])} intervals, {size / 1e6:.1f} MB of PNG; "
           f"largest interval max {max(i['max'] for i in layer['intervals'])} mm; "
