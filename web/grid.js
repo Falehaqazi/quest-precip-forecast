@@ -81,6 +81,30 @@ export function buildLut(layer, hours, hideAtOrBelow = -Infinity) {
   return lut;
 }
 
+// ---------- point time series tiles (mirrors pipeline/series.py) ----------
+
+/** Which tile file holds a grid cell, and where the cell sits inside each frame. */
+export function seriesAddress(series, row, col) {
+  const t = series.tile;
+  const ty = Math.floor(row / t), tx = Math.floor(col / t);
+  return { ty, tx, y: row % t, x: col % t, file: series.path.replace('{ty}', ty).replace('{tx}', tx) };
+}
+
+/**
+ * Codes of one cell for every interval, from the RGBA bytes of a decoded tile image.
+ * Layout "frames-stacked": interval k occupies image rows k*tile .. (k+1)*tile-1.
+ */
+export function extractSeries(rgba, series, y, x) {
+  const t = series.tile, n = series.intervals;
+  if (rgba.length !== t * t * n * 4) throw new Error('series tile has the wrong size');
+  const out = new Uint16Array(n);
+  for (let k = 0; k < n; k++) {
+    const j = ((k * t + y) * t + x) * 4;
+    out[k] = (rgba[j] << 8) | rgba[j + 1];
+  }
+  return out;
+}
+
 /** Hours (possibly fractional) between two ISO instants. */
 export function hoursBetween(isoA, isoB) {
   return (Date.parse(isoB) - Date.parse(isoA)) / 3600000;
