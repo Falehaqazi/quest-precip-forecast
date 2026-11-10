@@ -91,15 +91,33 @@ function buildLut(layer) {
 function initMap(manifest) {
   const b = manifest.grid.bounds;
   const world = [[b.south, b.west], [b.north, b.east]];
+  // zoomSnap 0: the minimum zoom is whatever makes the whole world fit this container,
+  // which is not a round number (and is below 0 on a phone).
   map = L.map('map', {
-    crs: L.CRS.EPSG4326, zoomSnap: 0.25, zoomDelta: 0.5, minZoom: 0, maxZoom: 7,
-    attributionControl: false, maxBounds: [[-110, -220], [110, 220]], maxBoundsViscosity: 0.9,
+    crs: L.CRS.EPSG4326, zoomSnap: 0, zoomDelta: 0.5, minZoom: -4, maxZoom: 7,
+    attributionControl: false, maxBounds: world, maxBoundsViscosity: 1,
   });
   map.createPane('land').style.zIndex = 200;
   map.createPane('raster').style.zIndex = 300;
   map.createPane('borders').style.zIndex = 350;
   map.getPane('borders').style.pointerEvents = 'none';
-  map.fitBounds(world);
+
+  // Fit the whole world and make that the zoom-out limit. Re-run whenever the map box
+  // changes size (rotation, side panel opening); keep the user's view unless they were
+  // already looking at the whole world.
+  const fitWorld = (force) => {
+    const wasWorldView = force || map.getZoom() <= map.getMinZoom() + 1e-6;
+    map.invalidateSize({ animate: false });
+    const fit = map.getBoundsZoom(world, false);
+    map.setMinZoom(fit);
+    if (wasWorldView) map.fitBounds(world, { animate: false });
+  };
+  map.setView([0, 0], 0, { animate: false });
+  fitWorld(true);
+  new ResizeObserver(() => fitWorld(false)).observe($('map'));
+
+  L.rectangle(world, { pane: 'land', renderer: L.canvas({ pane: 'land' }), interactive: false,
+    stroke: false, fillColor: '#f4f6f8', fillOpacity: 1 }).addTo(map); // sea, so the world's edge is visible
 
   const blank = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
   overlay = L.imageOverlay(blank, world, { pane: 'raster', className: 'data-raster', interactive: false }).addTo(map);

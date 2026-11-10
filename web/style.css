@@ -6,9 +6,6 @@
   --ink-2: #55544f;
   --ink-3: #85837c;
   --line: #dddbd5;
-  --sea: #f4f6f8;
-  --land: #ecebe6;
-  --border: #a9a79f;
   --accent: #1c5cab;
   --warn-bg: #fff4d6;
   --warn-ink: #6b4a00;
@@ -31,31 +28,36 @@ p { margin: 0; }
 }
 .stale { background: var(--warn-bg); color: var(--warn-ink); padding: 4px 10px; border-radius: 6px; font-size: 13px; }
 
-main { position: relative; flex: 1 1 auto; min-height: 240px; }
-#map { position: absolute; inset: 0; background: var(--sea); }
-.leaflet-container { font: inherit; background: var(--sea); }
+/* Wide screens: the map fills the space left by header and controls; the selected-cell
+   panel sits beside it. */
+main { display: flex; flex: 1 1 auto; min-height: 0; }
+.stage { position: relative; flex: 1 1 auto; min-width: 0; min-height: 240px; }
+#map { position: absolute; inset: 0; background: var(--surface); }
+.leaflet-container { font: inherit; background: var(--surface); }
 #map:focus:not(:focus-visible) { outline: none; }
 .leaflet-image-layer.data-raster { image-rendering: pixelated; image-rendering: crisp-edges; }
 
-.panel {
-  position: absolute; z-index: 500; background: rgba(252, 252, 251, .94);
-  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
-}
 .panel-title { font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
-.legend { left: 12px; bottom: 12px; max-width: calc(100% - 24px); }
+.legend {
+  position: absolute; z-index: 500; left: 12px; bottom: 12px; max-width: calc(100% - 24px);
+  background: rgba(252, 252, 251, .94); border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+}
 .legend-scale { display: flex; }
 .legend-scale .cls { width: 38px; }
 .legend-scale .swatch { height: 10px; margin-right: 2px; border-radius: 2px; }
 .legend-scale .tick { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; margin-top: 2px; }
 
-.readout { right: 12px; top: 12px; width: 250px; max-width: calc(100% - 24px); }
-.readout .big { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.readout .big small { font-size: 13px; font-weight: 400; color: var(--ink-2); }
-.readout dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0 0; font-size: 12px; }
-.readout dt { color: var(--ink-2); }
-.readout dd { margin: 0; font-variant-numeric: tabular-nums; }
-.close { position: absolute; right: 4px; top: 2px; border: 0; background: none; font-size: 18px; color: var(--ink-2); cursor: pointer; padding: 4px 8px; }
+.side {
+  position: relative; flex: 0 0 340px; overflow: auto;
+  border-left: 1px solid var(--line); padding: 12px 16px;
+}
+.side .big { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.side .big small { font-size: 13px; font-weight: 400; color: var(--ink-2); }
+.side dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 8px 0 0; font-size: 12px; }
+.side dt { color: var(--ink-2); }
+.side dd { margin: 0; font-variant-numeric: tabular-nums; }
+.close { position: absolute; right: 6px; top: 4px; border: 0; background: none; font-size: 20px; color: var(--ink-2); cursor: pointer; padding: 4px 10px; }
 
 .hover {
   position: absolute; z-index: 600; pointer-events: none; white-space: nowrap;
@@ -83,10 +85,17 @@ main { position: relative; flex: 1 1 auto; min-height: 240px; }
 footer { padding: 6px 16px 10px; font-size: 11px; color: var(--ink-3); border-top: 1px solid var(--line); }
 footer a { color: inherit; }
 
-@media (max-width: 640px) {
-  .controls { grid-template-columns: auto 1fr; }
-  #slider { grid-column: 1 / -1; order: 3; }
+/* Narrow screens: one scrolling column. The map box has the world's own 2:1 shape, so the
+   whole world fits the width exactly with no empty band; details stack underneath. */
+@media (max-width: 760px) {
+  html, body { height: auto; min-height: 100%; }
+  main { display: contents; }
+  .top { order: 0; }
+  .stage { order: 1; flex: none; min-height: 0; }
+  #map { position: relative; inset: auto; width: 100%; aspect-ratio: 360 / 180.25; }
+  .controls { order: 2; grid-template-columns: auto 1fr; border-top: 0; }
+  #slider { grid-column: 1 / -1; }
   .lead { display: none; }
-  .legend-scale .cls { width: 30px; }
-  .readout { top: auto; bottom: 64px; right: 12px; }
+  .side { order: 3; flex: none; border-left: 0; border-top: 1px solid var(--line); }
+  footer { order: 4; }
 }

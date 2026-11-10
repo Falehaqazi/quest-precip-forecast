@@ -18,22 +18,24 @@
   </header>
 
   <main>
-    <div id="map" aria-label="Map of forecast precipitation"></div>
+    <div class="stage">
+      <div id="map" aria-label="Map of forecast precipitation"></div>
 
-    <section id="legend" class="panel legend" aria-label="Legend">
-      <div id="legend-title" class="panel-title"></div>
-      <div id="legend-scale" class="legend-scale"></div>
-    </section>
+      <section id="legend" class="legend" aria-label="Legend">
+        <div id="legend-title" class="panel-title"></div>
+        <div id="legend-scale" class="legend-scale"></div>
+      </section>
 
-    <section id="readout" class="panel readout" aria-live="polite" hidden>
+      <div id="hover" class="hover" hidden></div>
+      <div id="error" class="error" role="alert" hidden></div>
+    </div>
+
+    <aside id="readout" class="side" aria-live="polite" hidden>
       <button id="readout-close" class="close" aria-label="Close">×</button>
       <div class="panel-title">Selected grid cell</div>
       <div id="readout-value" class="big"></div>
       <dl id="readout-details"></dl>
-    </section>
-
-    <div id="hover" class="hover" hidden></div>
-    <div id="error" class="error" role="alert" hidden></div>
+    </aside>
   </main>
 
   <section class="controls" aria-label="Forecast time">
