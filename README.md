@@ -2,8 +2,10 @@
 
 **Live: https://falehaqazi.github.io/quest-precip-forecast/**
 
-A static web map of forecast precipitation per 3- or 6-hour interval from the
-ECMWF IFS model (0.25°, deterministic), rebuilt twice a day from
+A static web map of forecast precipitation from the ECMWF IFS model (0.25°):
+the mean rate per 3- or 6-hour interval from the deterministic run, and the
+chance of at least 5, 10, 25 or 50 mm in 24 h from the 50-member ensemble.
+Rebuilt twice a day from
 [ECMWF open data](https://www.ecmwf.int/en/forecasts/datasets/open-data).
 
 - [SPEC.md](SPEC.md) — what it is, what the data really looks like, what "done" means
@@ -30,7 +32,8 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -r requirements.txt      # Windows; use .venv/bin/python elsewhere
 .venv/Scripts/python -m pytest -q                            # pipeline tests
 node --test tests/js/grid.test.mjs                           # browser grid code tests
-.venv/Scripts/python -m pipeline.run --out web/data          # ~50 MB download, a few minutes
+.venv/Scripts/python -m pipeline.run --out web/data          # ~430 MB download, 4-6 minutes
+.venv/Scripts/python -m pipeline.run --out web/data --ensemble off   # deterministic only: ~50 MB, under a minute
 .venv/Scripts/python -m http.server 8765 --directory web     # open http://localhost:8765
 ```
 

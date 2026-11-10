@@ -17,7 +17,41 @@ Last updated 2026-11-10, after the first deployment
 - The workflow's action versions (`checkout@v4`, `setup-python@v5`,
   `setup-node@v4`, `upload-pages-artifact@v3`) emit a "Node.js 20 is deprecated"
   warning. They work today; they will need bumping.
-- No ensemble / uncertainty layer (SPEC E1). No location search, no 24 h totals.
+- No location search, no 24 h totals of the single forecast.
+
+## The ensemble probabilities
+- **They are raw counts of 50 model runs, not calibrated probabilities.** "40 %"
+  means 20 of 50 members reached the amount. Nobody has checked here whether it
+  rains on 40 % of such occasions; raw ensembles are usually over-confident, but
+  I have not measured that and cite no source for it.
+- **0 % is not "impossible" and 100 % is not "certain".** They mean no member and
+  every member. The smallest non-zero value is 2 %.
+- **50 members, no control.** ECMWF's headers say the ensemble has 51 forecasts;
+  the open-data files hold the 50 perturbed ones. I do not know why, and did not
+  substitute the `oper` forecast for the missing one.
+- **Agreement with ECMWF's own probabilities is statistical, not cell by cell.**
+  Averaged over the globe the two differ by well under one percentage point at
+  every threshold, but individual cells differ by tens of points along sharp
+  rain edges, because ECMWF's field is smoothed in a way I could not determine.
+  Where they differ I cannot say which is better.
+- **No layer for light rain.** "At least 1 mm" was dropped because the packed
+  data cannot resolve it (DECISIONS D20). At 5 mm the same effect remains at up
+  to about 0.3 points on day 15.
+- **Cell averages.** "At least 25 mm" is for the mean over a ~28 km cell. A
+  gauge inside the cell can see far more; these maps understate the chance of
+  local extremes.
+- **Windows are fixed to the run time** (00–00 UTC or 12–12 UTC), so the same
+  storm can be split across two windows in one run and sit inside one in the
+  next. Consecutive runs are not directly comparable.
+- **The probability and rate layers are different forecasts.** The rate map is
+  the single `oper` run; it is not one of the 50 members, so a wet patch on the
+  rate map can sit in a low-probability area and both are correct displays.
+- The self-check needs ECMWF's `ep` files, which appear about 20 minutes after
+  the member files. If a build runs in between, the probabilities are
+  published unchecked and the manifest says so.
+- Only one model run of ensemble data (2026-11-10 00z) has been processed and
+  looked at. The 12z run and failure paths (missing member, late files) have
+  only been exercised by unit tests or not at all.
 
 ## The data
 - **This is raw model output.** No bias correction, no downscaling, no

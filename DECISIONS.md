@@ -206,3 +206,100 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   the 3 h → 6 h change, and it needs no legend. The total is given as a number.
 - **Phone**: no floating tooltip. A tap anywhere in a bar's column selects that
   interval, moves the map to it, and updates the numbers above the chart.
+
+## D19. Ensemble probabilities are for 24 h windows, at 5, 10, 25 and 50 mm
+- **Choice**: four layers, "chance of at least N mm in 24 h" for N = 5, 10, 25,
+  50, in 15 back-to-back windows from the run start (+0–24 h … +336–360 h).
+- **How the 3 h and 6 h steps are handled**: they are not mixed at all. A
+  window total for one member is `tp(window end) − tp(window start)`, and every
+  window end (+24, +48, … +360 h) is a step that exists in both the 3-hourly and
+  the 6-hourly part of the forecast. Nothing is interpolated in time, nothing is
+  summed across steps, and a window means the same thing on day 1 and day 15.
+  The change from 3 h to 6 h steps at +144 h falls exactly on a window boundary.
+- **Alternative A**: probabilities per 3 h / 6 h interval, matching the map's
+  time slider. Rejected: (1) it needs every step of every member — an estimated
+  1.8 GB of `tp` and 4,250 range requests per run (extrapolated from two steps)
+  instead of the measured 383 MB and 800;
+  (2) "at least 5 mm" in a 3 h interval and in a 6 h interval are different
+  events, so one threshold would mean two things across the +144 h change, the
+  very problem fixed for the rate layer in D14; (3) placing rain within 3 h a
+  week ahead is not something an ensemble can do, so most of the map would read
+  near zero.
+- **Alternative B**: overlapping windows every 12 h, as ECMWF publishes. Twice
+  the download for a smoother slider; not needed for "a few".
+- **Thresholds**: these four are also published by ECMWF (`tpg5/10/25/50`), so
+  every layer can be checked against an outside number (D21). **1 mm was built
+  first and dropped** — see D20. Not chosen: 20 mm (close to 25) and 100 mm
+  (almost always zero).
+- **Windows follow the run, not the calendar**: for the 00z run they are
+  00–00 UTC (05:30–05:30 IST); for the 12z run 12–12 UTC.
+
+## D20. No "at least 1 mm" layer: the source data cannot resolve it
+- **What was found**: with a 1 mm threshold my probabilities were lower than
+  ECMWF's own by 0.4 points on day 1, growing to 2.8 points on day 15, while
+  10 mm and above agreed to within 0.06.
+- **Cause, tested**: each member's `tp` is packed in 12 bits with a step that
+  grows with the field's maximum. The median step over the members was 0.12 mm
+  at +24 h, 0.24 mm at +120 h and 0.49 mm at +264 h; for some members it reached
+  **0.98 mm**. A window total is a difference of two such fields, so it can only
+  take values on that lattice, and the lattice point just under 1 mm (0.977)
+  swallows members whose true total is a little over 1 mm. Lowering my cut to
+  0.95 mm, which takes in that lattice point, flipped the bias to +1.7…+5.1
+  points — so the truth is bracketed and the direction is explained.
+- **Choice**: lowest threshold 5 mm, where the same effect is at most
+  0.34 points on day 15. A "chance of any rain" layer would be the one most
+  people want; it is not offered because it would be biased low by a
+  lead-dependent amount that I can measure but not remove.
+- **Alternative**: serve ECMWF's own `tpg1` for that one layer. Rejected for
+  now: one layer would then be computed differently from the other four.
+
+## D21. Probability = raw count of 50 perturbed members; checked against ECMWF every run
+- **Choice**: P = (members with window total ≥ threshold) / 50. The comparison
+  is "at least" (≥), matching ECMWF's parameter names. The stored number is the
+  member count (0–50), so the page can say "17 of 50 members". No smoothing in
+  space, no calibration, no control member (it is not in the open-data files).
+- **Alternative**: use ECMWF's `ep` product as is (≈70 MB, no computation).
+  Rejected because the calculation was asked for and because then nothing on
+  the page would be traceable to member forecasts; instead `ep` is used as the
+  reference. Fitting a distribution or adding a neighbourhood: more assumptions
+  than I can justify here.
+- **Self-check**: every run, each of the 60 fields is compared with ECMWF's
+  field for the same window and threshold; the result is written into the
+  manifest (`ensemble.crosscheck`) and if the mean absolute difference for any
+  threshold exceeds 3 percentage points the ensemble layers are not published.
+  Run 2026-11-10 00z, all 15 windows, in percentage points, mine minus ECMWF:
+  ≥5 mm: mean |diff| 0.608, mean diff -0.113, max 66.1; ≥10 mm: mean |diff| 0.36, mean diff +0.009, max 58.4; ≥25 mm: mean |diff| 0.113, mean diff -0.028, max 40.5; ≥50 mm: mean |diff| 0.026, mean diff -0.005, max 33.5.
+- **Why they do not match exactly**: ECMWF's field is smooth and not in steps
+  of 2 %, so it was not made by counting 50 members on this grid. Single cells
+  differ by up to several tens of points, mostly along sharp rain edges. The
+  check is good for catching a wrong window, unit or comparison; it does not
+  show that either field is right about the weather.
+- **If the ensemble cannot be built** (files late, a member missing, self-check
+  failed), the deterministic forecast is still published and the page says the
+  probabilities are missing. The build log carries a warning.
+
+## D22. Cost: 383 MB more download, 28 MB more output per run
+- **Measured locally** (run 2026-11-10 00z): 800 range requests, 383 MB of member
+  `tp`, 251 s for the ensemble part including decoding 800 fields and the
+  self-check, while ECMWF's server was busy publishing the 12z run (149 s when
+  the member files were already cached, so most of it is decoding). Output:
+  60 rasters = 11.1 MB and one shared set of 1,035 series tiles = 12.4 MB.
+  The site is now about 90 MB per run (Pages limit 1 GB).
+- **Choice**: all four thresholds of a cell live in one tile file (frames =
+  threshold × window), so the chart needs one download whichever layer is
+  shown, and the file count stays at 1,035 rather than 4,140.
+- **Memory**: members are kept as float32 for two steps at a time (≈400 MB).
+  float32 is exact for these values (integers below 4096 times a power of two).
+
+## D23. A run is used only when its ensemble files exist too
+- **Choice**: "newest complete run" now means the last-step index exists for the
+  deterministic forecast, for the ensemble members and for ECMWF's probability
+  product. Otherwise the previous run is used.
+- **Alternative**: take the newest deterministic run and publish without
+  probabilities until the next build (what `--ensemble optional` alone did).
+- **Why**: this happened during development. At about 19:40 UTC on 2026-11-10
+  the 12z deterministic run was complete and the 12z ensemble returned 404.
+  ECMWF's listing for the 00z run shows the same order (07:34, 07:40, 08:01).
+  A build in that gap would have replaced a full forecast with a partial one.
+- **Cost**: the page can be up to about half an hour later than it could be.
+  `--ensemble optional` still applies if something fails after the run is chosen.
