@@ -171,7 +171,9 @@ limit of 2000 simultaneous connections overall; no per-client rate limit found.
 
 ### 5.7 Not yet verified
 
-- Actual decoded values (nothing has been decoded yet — only headers read).
+- ~~Actual decoded values~~ — done 2026-11-10: ecCodes reports `tp` units `m`,
+  `stepType accum`, and `tprate` units `kg m**-2 s**-1`; de-accumulated values
+  at three points agree with Open-Meteo to 0.1 mm (tests/fixtures/README.md).
 - Whether file publication is atomic (can a run directory be listed while
   incomplete? Today's 00z shows all 85 steps with the same timestamp).
 - `enfo` contents beyond file names (`-enfo-ef`, 2× `-enfo-ep`, 1× `-enfo-tf.bufr`).

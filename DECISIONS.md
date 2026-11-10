@@ -69,3 +69,32 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   Mercator would need client-side reprojection and cuts off the poles. No tile
   provider means no third-party key or outage. Cost: less familiar look, no
   street-level context.
+
+## D9. Real ECMWF messages are committed as test fixtures
+- **Choice**: three real `tp` messages (steps 0, 3, 6; ~640 KB) and one real
+  `.index` file live in `tests/fixtures/`.
+- **Alternative**: synthetic arrays only, or downloading during tests.
+- **Why**: units, accumulation window, grid layout and CCSDS decoding are exactly
+  the things that can be wrong without anyone noticing. Tests that decode the
+  real bytes and compare with an outside value catch that; synthetic data cannot.
+  Network-free, so CI does not depend on ECMWF being up. CC BY 4.0 permits it.
+
+## D10. ecCodes is called from the main thread only
+- **Choice**: download in 4 threads, decode sequentially.
+- **Alternative**: decode inside the worker threads (the first version).
+- **Why**: that version killed the process with no traceback on Windows. Decoding
+  85 fields takes seconds, so nothing is lost. Full run: ~43 s locally.
+
+## D11. Scheduled builds at 08:05/10:05 and 20:05/22:05 UTC
+- **Choice**: two attempts per run, shortly after the observed publication time.
+- **Alternative**: poll every 30 min; or trigger on ECMWF's side (not possible).
+- **Why**: publication was seen at ~07:34 and ~19:34 UTC. A rebuild of the same
+  run is idempotent, so the second attempt is a cheap retry. If a build fails,
+  nothing is deployed and the previous run stays up with its age shown.
+
+## D12. Cache-busting by run time in the raster URL
+- **Choice**: rasters are requested as `tp_interval/006.png?run=<reference time>`.
+- **Alternative**: put the run time in the file path.
+- **Why**: file names repeat from run to run, and a browser or CDN cache could
+  pair the new manifest with an old raster — a wrong number with nothing to show
+  it. The query string avoids that without changing the layout on disk.
