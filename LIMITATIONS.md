@@ -1,13 +1,22 @@
 # LIMITATIONS
 
 What is wrong, approximate or untested. Kept blunt on purpose.
-Last updated 2026-11-10, after the first local end-to-end run.
+Last updated 2026-11-10, after the first deployment
+(https://falehaqazi.github.io/quest-precip-forecast/).
 
 ## Not done yet
-- **Nothing is deployed.** There is no public URL. The repo has no remote.
-- **The GitHub Actions workflow has never run.** Action versions were written
-  from memory, and `eccodes` has only been exercised on Windows; whether the
-  Linux wheel decodes CCSDS out of the box in CI is untested.
+- **The scheduled refresh has never fired.** The one successful build so far was
+  triggered by a push (2026-11-10 12:06 UTC). SPEC's "runs unattended twice in a
+  row" is unmet until the 20:05 UTC and next 08:05 UTC crons have been seen to
+  work. GitHub delays or skips scheduled runs under load, and disables schedules
+  in repos with no activity for 60 days.
+- **The first deploy attempt failed**: the `github-pages` environment only allows
+  the `main` branch and the code was on `master`. The local branch was renamed to
+  `main` and pushed. A stale `master` branch is still on GitHub and is probably
+  still the repo's default branch; pushes to it build but cannot deploy.
+- The workflow's action versions (`checkout@v4`, `setup-python@v5`,
+  `setup-node@v4`, `upload-pages-artifact@v3`) emit a "Node.js 20 is deprecated"
+  warning. They work today; they will need bumping.
 - **No point time series (SPEC F4).** Clicking a cell shows the value for the
   interval on screen only.
 - No ensemble / uncertainty layer (SPEC E1). No location search, no 24 h totals.
@@ -48,6 +57,9 @@ Last updated 2026-11-10, after the first local end-to-end run.
 - ecCodes is trusted as the reference decoder.
 
 ## The pipeline
+- The pipeline has run successfully once on Linux (GitHub runner) and a few
+  times on Windows, all on the same model run (2026-11-10 00z). It has never
+  processed a 12z run or handled a missing/late run for real.
 - **ecCodes crashed the Python process when called from worker threads**
   (Windows, eccodes 2.50.0; exit without traceback). I did not investigate the
   cause; decoding now happens on the main thread only and downloads stay
@@ -61,7 +73,7 @@ Last updated 2026-11-10, after the first local end-to-end run.
   an emulated 375 px phone viewport. The value decoding depends on the browser
   not altering PNG bytes (`createImageBitmap` with no colour conversion); in
   Chromium the decoded values matched the pipeline exactly at the points
-  checked. Firefox and Safari are untested.
+  checked, locally and on the live site. Firefox and Safari are untested.
 - No automated browser tests. Only the grid/decoding helpers have unit tests.
 - Times are shown in UTC and the browser's zone, not the clicked location's zone.
 - The map does not wrap across the antimeridian; a storm on the date line is

@@ -98,3 +98,12 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Why**: file names repeat from run to run, and a browser or CDN cache could
   pair the new manifest with an old raster — a wrong number with nothing to show
   it. The query string avoids that without changing the layout on disk.
+
+## D13. Deploy from `main`, not `master`
+- **Choice**: rename the local branch to `main` and push it.
+- **Alternative**: edit the `github-pages` environment on GitHub to allow `master`.
+- **Why**: the first deploy was rejected because the environment's branch policy
+  lists only `main`. Renaming needed no change to repository settings (which only
+  the owner can make) and matches GitHub's default. The workflow already
+  triggered on both names. Cost: an orphan `master` branch remains on GitHub
+  until the owner deletes it and switches the default branch.

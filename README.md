@@ -1,5 +1,7 @@
 # Precipitation forecast from ECMWF Open Data
 
+**Live: https://falehaqazi.github.io/quest-precip-forecast/**
+
 A static web map of forecast precipitation per 3- or 6-hour interval from the
 ECMWF IFS model (0.25°, deterministic), rebuilt twice a day from
 [ECMWF open data](https://www.ecmwf.int/en/forecasts/datasets/open-data).
