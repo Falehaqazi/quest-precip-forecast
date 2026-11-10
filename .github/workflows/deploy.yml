@@ -23,6 +23,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,7 +39,9 @@ jobs:
       - name: Tests (browser grid code)
         run: node --test tests/js/*.test.mjs
       - name: Build data from the newest complete ECMWF run
-        run: python -m pipeline.run --out web/data
+        # --ensemble optional: if the ensemble files are late or fail their self-check, the
+        # deterministic forecast is still published and the page says the probabilities are missing.
+        run: python -m pipeline.run --out web/data --ensemble optional
       - name: Stamp script and style URLs with the commit
         # Browsers and the Pages CDN cache app.js / grid.js / style.css separately. Without
         # this, a visitor can get a new app.js with an old grid.js and a blank page.

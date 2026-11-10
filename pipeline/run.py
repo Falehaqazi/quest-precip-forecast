@@ -18,12 +18,12 @@ from pathlib import Path
 
 import numpy as np
 
-from . import catalogue, series
+from . import catalogue, ensemble, series
 from .encode import codes_to_png, quantise
 from .gribio import Field, decode, expect_accumulated_tp
 from .process import MM_PER_M, deaccumulate, iso_utc, metres_to_mm, valid_time
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 TP_SCALE_MM = 0.05          # see DECISIONS D7
 FETCH_WORKERS = 4
 
@@ -41,7 +41,8 @@ ATTRIBUTION = {
     "text": "Based on data and products of the European Centre for Medium-Range Weather "
             "Forecasts (ECMWF). © ECMWF, published under CC BY 4.0. The data has been "
             "modified: precipitation was de-accumulated into per-interval amounts, "
-            "converted from m to mm and rounded to 0.05 mm.",
+            "converted from m to mm and rounded to 0.05 mm; ensemble probabilities were "
+            "computed by counting member forecasts.",
     "licence_url": "https://creativecommons.org/licenses/by/4.0/",
     "source_url": "https://www.ecmwf.int/en/forecasts/datasets/open-data",
 }
@@ -59,7 +60,8 @@ def fetch_tp_bytes(session, run: catalogue.Run, step: int, retries: int = 3) -> 
             time.sleep(5 * attempt)
 
 
-def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
+def build(out: Path, run: catalogue.Run, steps: list[int], ensemble_mode: str = "optional",
+          cache: Path | None = None) -> dict:
     session = catalogue.new_session()
     t0 = time.time()
     with ThreadPoolExecutor(FETCH_WORKERS) as pool:
@@ -141,6 +143,24 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
             "intervals": entries,
         }],
     }
+    # Ensemble probabilities are an addition: if they cannot be built, the deterministic
+    # forecast is still published and the manifest says why they are missing.
+    if ensemble_mode == "off" or steps[-1] % ensemble.WINDOW_HOURS:
+        manifest["ensemble"] = {"status": "not built"}
+    else:
+        t0 = time.time()
+        try:
+            layers, summary = ensemble.build(out, session, run, steps[-1], grid, cache=cache)
+        except Exception as e:  # noqa: BLE001 - anything from a missing file to a failed self-check
+            if ensemble_mode == "required":
+                raise
+            print(f"::warning::ensemble layers not built: {e!r}", flush=True)
+            manifest["ensemble"] = {"status": "unavailable", "reason": repr(e)}
+        else:
+            manifest["layers"] += layers
+            manifest["ensemble"] = summary
+            print(f"ensemble layers built in {time.time() - t0:.0f}s: "
+                  f"{summary['raster_bytes'] / 1e6:.1f} MB rasters, {summary['series_bytes'] / 1e6:.1f} MB series tiles")
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
     return manifest
 
@@ -151,6 +171,9 @@ def main(argv=None) -> int:
     p.add_argument("--date", help="YYYYMMDD (default: newest complete run)")
     p.add_argument("--hour", choices=["00", "12"])
     p.add_argument("--max-step", type=int, help="only process steps up to this hour (for quick tests)")
+    p.add_argument("--ensemble", choices=["optional", "required", "off"], default="optional",
+                   help="optional: publish without probabilities if the ensemble cannot be built")
+    p.add_argument("--cache", type=Path, help="keep downloaded ensemble messages here (local development)")
     a = p.parse_args(argv)
 
     if bool(a.date) != bool(a.hour):
@@ -158,13 +181,14 @@ def main(argv=None) -> int:
     if a.date:
         run = catalogue.Run(a.date, a.hour)
     else:
-        run = catalogue.latest_complete_run(catalogue.new_session(), datetime.now(timezone.utc))
+        run = catalogue.latest_complete_run(catalogue.new_session(), datetime.now(timezone.utc),
+                                            with_ensemble=a.ensemble != "off")
     steps = catalogue.expected_steps(run.hour)
     if a.max_step is not None:
         steps = [s for s in steps if s <= a.max_step]
     print(f"run {run.date} {run.hour}z, {len(steps)} steps up to {steps[-1]} h -> {a.out}")
 
-    manifest = build(a.out, run, steps)
+    manifest = build(a.out, run, steps, ensemble_mode=a.ensemble, cache=a.cache)
     layer = manifest["layers"][0]
     size = sum(f.stat().st_size for f in (a.out / "tp_interval").glob("*.png"))
     s = layer["series"]
