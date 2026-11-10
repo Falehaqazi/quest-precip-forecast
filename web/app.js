@@ -257,7 +257,7 @@ function buildLegend(layer) {
     sw.style.background = s.color;
     const tick = document.createElement('div');
     tick.className = 'tick';
-    tick.textContent = `≥ ${s.from}`;
+    tick.textContent = String(s.from); // lower bound of this class
     cls.append(sw, tick);
     scale.append(cls);
   }

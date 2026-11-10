@@ -44,9 +44,10 @@ main { display: flex; flex: 1 1 auto; min-height: 0; }
   padding: 8px 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
 }
 .legend-scale { display: flex; }
-.legend-scale .cls { width: 38px; }
+.legend-scale .cls { flex: 1 1 0; min-width: 34px; }
 .legend-scale .swatch { height: 10px; margin-right: 2px; border-radius: 2px; }
-.legend-scale .tick { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; margin-top: 2px; }
+/* Each number is the lower bound of the class above it; never wrap it. */
+.legend-scale .tick { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; margin-top: 2px; white-space: nowrap; }
 
 .side {
   position: relative; flex: 0 0 340px; overflow: auto;
@@ -93,6 +94,18 @@ footer a { color: inherit; }
   .top { order: 0; }
   .stage { order: 1; flex: none; min-height: 0; }
   #map { position: relative; inset: auto; width: 100%; aspect-ratio: 360 / 180.25; }
+  .leaflet-touch .leaflet-bar a { width: 24px; height: 24px; line-height: 24px; font-size: 16px; }
+  .leaflet-left .leaflet-control { margin-left: 6px; }
+  .leaflet-top .leaflet-control { margin-top: 6px; }
+  /* The legend is a strip under the map instead of a box on top of it. */
+  .legend {
+    position: static; max-width: none; background: none; border: 0; border-radius: 0; box-shadow: none;
+    padding: 8px 16px 2px;
+  }
+  .legend .panel-title { margin-bottom: 4px; }
+  .legend-scale .cls { min-width: 0; }
+  .legend-scale .swatch { height: 8px; }
+  .legend-scale .tick { font-size: 10px; }
   .controls { order: 2; grid-template-columns: auto 1fr; border-top: 0; }
   #slider { grid-column: 1 / -1; }
   .lead { display: none; }
