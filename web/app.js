@@ -4,6 +4,7 @@ const DATA_DIR = 'data/';
 const STALE_AFTER_HOURS = 24;   // a fresh 00z/12z run is 7-20 h old when viewed (see LIMITATIONS)
 const PLAY_INTERVAL_MS = 650;
 const CACHE_SIZE = 16;          // decoded intervals kept in memory (~2 MB each)
+const MIN_ZOOM_FLOOR = -4;      // far below any real fit; the working minimum is computed per box size
 
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -95,7 +96,7 @@ function initMap(manifest) {
   // zoomSnap 0: the minimum zoom is whatever makes the whole world fit this container,
   // which is not a round number (and is below 0 on a phone).
   map = L.map('map', {
-    crs: L.CRS.EPSG4326, zoomSnap: 0, zoomDelta: 0.5, minZoom: -4, maxZoom: 7,
+    crs: L.CRS.EPSG4326, zoomSnap: 0, zoomDelta: 0.5, minZoom: MIN_ZOOM_FLOOR, maxZoom: 7,
     attributionControl: false, maxBounds: world, maxBoundsViscosity: 1,
   });
   map.createPane('land').style.zIndex = 200;
@@ -109,6 +110,9 @@ function initMap(manifest) {
   const fitWorld = (force) => {
     const wasWorldView = force || map.getZoom() <= map.getMinZoom() + 1e-6;
     map.invalidateSize({ animate: false });
+    // getBoundsZoom clamps its answer to the current minZoom, so a box that got smaller
+    // (side panel opening, phone rotated to portrait) could never zoom out further. Clear it first.
+    map.options.minZoom = MIN_ZOOM_FLOOR;
     const fit = map.getBoundsZoom(world, false);
     map.setMinZoom(fit);
     if (wasWorldView) map.fitBounds(world, { animate: false });
