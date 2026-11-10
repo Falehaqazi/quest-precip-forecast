@@ -39,6 +39,12 @@ jobs:
         run: node --test tests/js/*.test.mjs
       - name: Build data from the newest complete ECMWF run
         run: python -m pipeline.run --out web/data
+      - name: Stamp script and style URLs with the commit
+        # Browsers and the Pages CDN cache app.js / grid.js / style.css separately. Without
+        # this, a visitor can get a new app.js with an old grid.js and a blank page.
+        run: |
+          sed -i "s/__BUILD__/${GITHUB_SHA::12}/g" web/index.html web/app.js
+          ! grep -n "__BUILD__" web/index.html web/app.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web

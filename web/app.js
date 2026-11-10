@@ -1,4 +1,4 @@
-import { indexOf, centerOf, cellBounds, rgbaToCodes, decodeValue, displayValue, buildLut } from './grid.js';
+import { indexOf, centerOf, cellBounds, rgbaToCodes, decodeValue, displayValue, buildLut } from './grid.js?v=__BUILD__';
 
 const DATA_DIR = 'data/';
 const STALE_AFTER_HOURS = 24;   // a fresh 00z/12z run is 7-20 h old when viewed (see LIMITATIONS)
