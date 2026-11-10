@@ -59,3 +59,26 @@ def test_png_uses_high_byte_in_red_low_byte_in_green():
     assert img.mode == "RGB"                       # no alpha channel
     assert img.getpixel((0, 0)) == (0x12, 0x34, 0)
     assert img.getpixel((1, 0)) == (0x00, 0xFF, 0)
+
+
+def test_a_run_is_complete_only_when_the_ensemble_files_exist_too():
+    from pipeline.catalogue import completeness_urls, latest_complete_run
+
+    newest, older = Run("20261110", "12"), Run("20261110", "00")
+    base = "https://data.ecmwf.int/forecasts/20261110/12z/ifs/0p25"
+    assert completeness_urls(newest, with_ensemble=False) == [f"{base}/oper/20261110120000-360h-oper-fc.index"]
+    assert completeness_urls(newest, with_ensemble=True) == [
+        f"{base}/oper/20261110120000-360h-oper-fc.index",
+        f"{base}/enfo/20261110120000-360h-enfo-ef.index",
+        f"{base}/enfo/20261110120000-360h-enfo-ep.index",
+    ]
+
+    class FakeSession:
+        """The situation seen on 2026-11-10 at 19:50 UTC: 12z oper is up, 12z ensemble is not."""
+        def head(self, url, timeout=None):
+            missing = "/12z/" in url and "/enfo/" in url
+            return type("R", (), {"status_code": 404 if missing else 200})()
+
+    now = datetime(2026, 11, 10, 19, 50, tzinfo=timezone.utc)
+    assert latest_complete_run(FakeSession(), now, with_ensemble=False) == newest
+    assert latest_complete_run(FakeSession(), now, with_ensemble=True) == older

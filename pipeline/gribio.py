@@ -27,6 +27,7 @@ class Field:
     grid: Grid
     values: np.ndarray    # shape (nj, ni), row 0 = northernmost
     quantum: float        # smallest step the packing can represent, in `units` (0 for a constant field)
+    member: int | None = None   # ensemble member number for perturbed forecasts, else None
 
 
 def decode(message: bytes) -> Field:
@@ -55,6 +56,7 @@ def decode(message: bytes) -> Field:
             grid=grid,
             values=values.reshape(grid.nj, grid.ni),
             quantum=quantum,
+            member=int(ec.codes_get(h, "perturbationNumber")) if ec.codes_get(h, "dataType") == "pf" else None,
         )
     finally:
         ec.codes_release(h)
