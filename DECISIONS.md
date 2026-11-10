@@ -164,3 +164,45 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   and is not coloured.** The numbers are still there on hover and click.
 - **Still coarse**: between +120 h and +144 h the lowest class is exactly two
   quanta (0.49 mm in 3 h); later classes are a handful of quanta wide.
+
+## D16. The second time zone is IST for every viewer
+- **Choice**: every time on the page is shown in UTC and in India Standard Time
+  (`Asia/Kolkata`, UTC+05:30, no daylight saving), labelled "IST". It is one
+  constant in `web/time.js`.
+- **Alternative**: UTC plus the browser's own zone (the first version); or the
+  clicked location's zone (needs a time-zone boundary dataset).
+- **Why**: Faleha asked for UTC and IST in the chart. Showing IST in the chart
+  and the browser's zone in the slider would put two different "local" times on
+  one page for anyone outside India, so the whole page uses the same pair.
+- **Cost**: a viewer outside India has to convert from UTC themselves.
+
+## D17. The time series comes from tiles cut by place, not from the map rasters
+- **Choice**: the pipeline writes the same 16-bit codes a second time, as one PNG
+  per 32 × 32 block of cells holding all 84 intervals (1,035 files, 32 MB,
+  ~30 KB typical, 91 KB largest). A click downloads one of them.
+- **Alternative A**: read the clicked pixel out of all 84 map rasters (about
+  29 MB of downloads per click). **Alternative B**: a server that answers point
+  queries (deferred, SPEC S4). **Alternative C**: one file per cell (a million
+  files).
+- **Why**: one small request per click with static hosting only. The site
+  doubles to ~62 MB per run, far below the Pages limit.
+- **Guard**: the two files could in principle disagree. Tests compare them on
+  real data in the pipeline, and the page compares the chart's value with the
+  map's value for the selected cell on every interval change and prints a
+  warning under the chart if they differ.
+
+## D18. Chart form: one bar per interval, height = mean rate, width = duration
+- **Choice**: bars on a linear time axis. Height is mm/h, width is the interval
+  length (3 h or 6 h), so area is the amount in mm. One colour; the interval
+  shown on the map is dark; bars too small for the map to draw are pale. The
+  numbers for the tapped (or hovered) interval are printed above the chart in
+  mm/h and mm, with the interval in UTC and IST. A table of all 84 values is one
+  tap away.
+- **Alternative**: equal-width bars of mm per interval (the 6 h bars would look
+  twice as wet, the problem fixed on the map in D14); a line (suggests values
+  between the intervals that do not exist); a cumulative curve (hides when it
+  rains); a second axis for the cumulative total (two scales on one chart).
+- **Why**: it is the same quantity and unit as the map, it stays honest across
+  the 3 h → 6 h change, and it needs no legend. The total is given as a number.
+- **Phone**: no floating tooltip. A tap anywhere in a bar's column selects that
+  interval, moves the map to it, and updates the numbers above the chart.

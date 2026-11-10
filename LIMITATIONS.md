@@ -17,8 +17,6 @@ Last updated 2026-11-10, after the first deployment
 - The workflow's action versions (`checkout@v4`, `setup-python@v5`,
   `setup-node@v4`, `upload-pages-artifact@v3`) emit a "Node.js 20 is deprecated"
   warning. They work today; they will need bumping.
-- **No point time series (SPEC F4).** Clicking a cell shows the value for the
-  interval on screen only.
 - No ensemble / uncertainty layer (SPEC E1). No location search, no 24 h totals.
 
 ## The data
@@ -87,7 +85,20 @@ Last updated 2026-11-10, after the first deployment
   Chromium the decoded values matched the pipeline exactly at the points
   checked, locally and on the live site. Firefox and Safari are untested.
 - No automated browser tests. Only the grid/decoding helpers have unit tests.
-- Times are shown in UTC and the browser's zone, not the clicked location's zone.
+- **Times are UTC and IST for everyone.** A viewer in another zone gets no local
+  time, and neither zone is the clicked location's own. The chart's day ticks
+  are UTC midnights, which is 05:30 in IST.
+- **The chart is one grid cell of one forecast.** No uncertainty band, no
+  neighbouring cells, no earlier runs. A spike on day 12 is drawn as firmly as
+  one in hour 3; treat anything beyond a few days as a single scenario.
+- **Bars are narrow on a phone.** At 375 px a 3 h interval is under 3 px wide,
+  so a tap picks the right day reliably but not always the exact interval.
+  The slider steps one interval at a time and the table lists every value.
+- **Bar height is a mean rate, not a peak.** The 6 h bars after +144 h average
+  over twice as long as the 3 h bars before, so the same burst looks half as
+  tall there. Area (height × width) is the amount and is comparable.
+- The chart's y axis rescales for each cell, so two cells cannot be compared
+  by eye; read the axis.
 - The map does not wrap across the antimeridian; a storm on the date line is
   split between the two edges.
 - Plate carrée stretches high latitudes east–west. Cells near the poles look as

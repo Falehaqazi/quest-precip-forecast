@@ -33,8 +33,10 @@ window, and the page states the model run it came from.
   whatever the source step is; the window length is always shown).
 - F4. Click/tap a point → time series of precipitation for that grid cell, plus
   the cell's actual lat/lon (the grid cell centre, not the click position).
+  *Built 2026-11-10: bar chart of mean rate (mm/h) per interval, with a table.*
 - F5. Visible run metadata: model, run date/time (UTC), valid time of the shown
-  interval in UTC and in the browser's local time zone.
+  interval in UTC and in IST (changed from "the browser's local zone" on
+  2026-11-10 at Faleha's request; DECISIONS D16).
 - F6. Data refreshes automatically when a new run is published; the page never
   silently shows a stale run (age of run is displayed).
 - F7. Colour legend with units. ECMWF attribution and CC BY 4.0 notice
@@ -70,7 +72,8 @@ window, and the page states the model run it came from.
 - User accounts, alerts/notifications, saved locations, native mobile app.
 - Historical archive: the ECMWF portal itself only keeps ~4 days; we keep only
   the latest run.
-- Time zone *of the clicked location*. Times are UTC and browser-local only.
+- Time zone *of the clicked location*, and the viewer's own zone. Times are UTC
+  and IST only.
 
 ## 4. What "done" means
 
