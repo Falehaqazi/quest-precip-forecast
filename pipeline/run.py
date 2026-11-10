@@ -29,9 +29,10 @@ FETCH_WORKERS = 4
 
 # Legend for per-interval precipitation: lower bound of each class in mm, and its colour.
 # Values below the first bound are drawn transparent.
+# One hue, light -> dark (sequential: more precipitation is darker). No rainbow.
 TP_LEGEND = [
-    (0.1, "#d6e8f5"), (0.5, "#b3d3ec"), (1, "#86b8e0"), (2, "#5a9bd1"), (5, "#3a7dbd"),
-    (10, "#2760a3"), (20, "#1b4585"), (50, "#6a3d9a"), (100, "#b5179e"),
+    (0.1, "#cde2fb"), (0.5, "#9ec5f4"), (1, "#86b6ef"), (2, "#5598e7"), (5, "#2a78d6"),
+    (10, "#256abf"), (20, "#184f95"), (50, "#104281"), (100, "#0d366b"),
 ]
 
 ATTRIBUTION = {
@@ -44,11 +45,11 @@ ATTRIBUTION = {
 }
 
 
-def fetch_tp(session, run: catalogue.Run, step: int, retries: int = 3) -> Field:
+def fetch_tp_bytes(session, run: catalogue.Run, step: int, retries: int = 3) -> bytes:
+    """Network only. Runs in worker threads; ecCodes is NOT called here (see build)."""
     for attempt in range(1, retries + 1):
         try:
-            msg = catalogue.fetch_message(session, run, step, param="tp", levtype="sfc")
-            return expect_accumulated_tp(decode(msg), step)
+            return catalogue.fetch_message(session, run, step, param="tp", levtype="sfc")
         except (IOError, OSError) as e:
             if attempt == retries:
                 raise
@@ -60,8 +61,12 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
     session = catalogue.new_session()
     t0 = time.time()
     with ThreadPoolExecutor(FETCH_WORKERS) as pool:
-        fields = dict(zip(steps, pool.map(lambda s: fetch_tp(session, run, s), steps)))
-    print(f"fetched and decoded {len(fields)} tp fields in {time.time() - t0:.0f}s")
+        messages = list(pool.map(lambda s: fetch_tp_bytes(session, run, s), steps))
+    print(f"fetched {len(messages)} tp messages, {sum(map(len, messages)) / 1e6:.1f} MB, "
+          f"in {time.time() - t0:.0f}s", flush=True)
+    # Decode on the main thread only: calling ecCodes from the worker threads killed the
+    # process without a Python traceback (observed on Windows, eccodes 2.50.0).
+    fields: dict[int, Field] = {s: expect_accumulated_tp(decode(m), s) for s, m in zip(steps, messages)}
 
     grids = {f.grid for f in fields.values()}
     refs = {f.reference for f in fields.values()}

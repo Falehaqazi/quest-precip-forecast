@@ -33,7 +33,8 @@ def codes_to_png(codes: np.ndarray) -> bytes:
     rgb[..., 0] = codes >> 8
     rgb[..., 1] = codes & 0xFF
     buf = io.BytesIO()
-    Image.fromarray(rgb).save(buf, format="PNG", optimize=True)
+    # compress_level=6 measured smaller AND ~10x faster than optimize=True on a real field.
+    Image.fromarray(rgb).save(buf, format="PNG", compress_level=6)
     return buf.getvalue()
 
 
