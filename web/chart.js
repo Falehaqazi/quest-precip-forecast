@@ -54,14 +54,15 @@ const el = (name, attrs = {}, text) => {
 
 /**
  * Draw the chart into `svg`.
- * model = { intervals, rates, faint: bool[], current, referenceIso, dayLabel(iso), onPick(i), onHover(i|null) }
+ * model = { intervals, rates, faint: bool[], current, referenceIso, dayLabel(iso), onPick(i), onHover(i|null),
+ *           yMax? }  (yMax fixes the axis, e.g. 100 for percentages; otherwise it fits the data)
  */
 export function render(svg, model) {
   const width = Math.max(svg.clientWidth || 300, 220), height = 170;
   svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   svg.replaceChildren();
   const box = { left: 30, right: width - 6, top: 8, bottom: height - 22 };
-  const yMax = niceMax(Math.max(...model.rates));
+  const yMax = model.yMax ?? niceMax(Math.max(...model.rates));
   const bars = layoutBars(model.intervals, model.rates, box, yMax);
   const t0 = model.intervals[0].start_step, t1 = model.intervals[model.intervals.length - 1].end_step;
   const xOf = (hours) => box.left + (hours - t0) * (box.right - box.left) / (t1 - t0);

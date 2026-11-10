@@ -43,6 +43,13 @@ main { display: flex; flex: 1 1 auto; min-height: 0; }
   background: rgba(252, 252, 251, .94); border: 1px solid var(--line); border-radius: 8px;
   padding: 8px 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
 }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.layer-pick { display: block; margin-bottom: 6px; }
+.layer-pick select {
+  width: 100%; max-width: 330px; font: inherit; font-size: 13px; padding: 5px 6px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+}
+#ensemble-note { margin-top: 4px; }
 .legend-scale { display: flex; }
 .legend-scale .cls { flex: 1 1 0; min-width: 34px; }
 .legend-scale .swatch { height: 10px; margin-right: 2px; border-radius: 2px; }
@@ -69,6 +76,8 @@ main { display: flex; flex: 1 1 auto; min-height: 0; }
 .chart .bar { fill: #2a78d6; }
 .chart .bar.faint { fill: #b7d3f6; }
 .chart .bar.current { fill: #0d366b; }
+.chart svg.prob .bar { fill: #e06c35; }
+.chart svg.prob .bar.current { fill: #86330e; }
 .chart .band { fill: rgba(31, 31, 29, .09); }
 .chart .hit { fill: transparent; cursor: pointer; }
 .status { color: #7a1414; }
@@ -128,6 +137,7 @@ footer a { color: inherit; }
     padding: 8px 16px 2px;
   }
   .legend .panel-title { margin-bottom: 4px; }
+  .layer-pick select { max-width: none; font-size: 14px; padding: 7px 6px; }
   .legend-scale .cls { min-width: 0; }
   .legend-scale .swatch { height: 8px; }
   .legend-scale .tick { font-size: 10px; }

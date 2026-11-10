@@ -92,14 +92,18 @@ export function seriesAddress(series, row, col) {
 
 /**
  * Codes of one cell for every interval, from the RGBA bytes of a decoded tile image.
- * Layout "frames-stacked": interval k occupies image rows k*tile .. (k+1)*tile-1.
+ * Layout "frames-stacked": frame k occupies image rows k*tile .. (k+1)*tile-1.
  */
 export function extractSeries(rgba, series, y, x) {
+  // Several layers can share one tile file: this layer's intervals are then frames
+  // frame_offset .. frame_offset + intervals - 1 of the `frames` in the file.
   const t = series.tile, n = series.intervals;
-  if (rgba.length !== t * t * n * 4) throw new Error('series tile has the wrong size');
+  const frames = series.frames ?? n, first = series.frame_offset ?? 0;
+  if (rgba.length !== t * t * frames * 4) throw new Error('series tile has the wrong size');
+  if (first < 0 || first + n > frames) throw new Error('series frames out of range');
   const out = new Uint16Array(n);
   for (let k = 0; k < n; k++) {
-    const j = ((k * t + y) * t + x) * 4;
+    const j = (((first + k) * t + y) * t + x) * 4;
     out[k] = (rgba[j] << 8) | rgba[j + 1];
   }
   return out;

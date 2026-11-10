@@ -14,7 +14,7 @@ const MIN_ZOOM_FLOOR = -4;      // far below any real fit; the working minimum i
 
 const $ = (id) => document.getElementById(id);
 const state = {
-  manifest: null, layer: null, index: 0, codes: null, luts: new Map(),
+  manifest: null, layers: [], layer: null, index: 0, codes: null, luts: new Map(),
   cache: new Map(), selected: null, playing: false, renderToken: 0, blobUrl: null,
   series: null, seriesToken: 0, tiles: new Map(), hoverIndex: null,
 };
@@ -37,7 +37,7 @@ async function loadManifest() {
   const res = await fetch(`${DATA_DIR}manifest.json`, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`manifest.json: HTTP ${res.status}`);
   const m = await res.json();
-  if (m.schema !== 2) throw new Error(`unsupported manifest schema ${m.schema}`);
+  if (m.schema !== 3) throw new Error(`unsupported manifest schema ${m.schema}`);
   return m;
 }
 
@@ -66,10 +66,11 @@ function remember(cache, key, value, limit) {
 
 /** One interval raster as Uint16 codes. */
 async function loadCodes(i) {
-  if (state.cache.has(i)) return state.cache.get(i);
+  const key = `${state.layer.id}:${i}`;
+  if (state.cache.has(key)) return state.cache.get(key);
   const { grid } = state.manifest;
   const rgba = await fetchRgba(state.layer.intervals[i].file, grid.ni, grid.nj);
-  return remember(state.cache, i, rgbaToCodes(rgba, grid.ni * grid.nj), CACHE_SIZE);
+  return remember(state.cache, key, rgbaToCodes(rgba, grid.ni * grid.nj), CACHE_SIZE);
 }
 
 /** Every interval for one grid cell, as Uint16 codes, from the cell's series tile. */
@@ -77,7 +78,7 @@ async function loadSeries(row, col) {
   const s = state.layer.series;
   const addr = seriesAddress(s, row, col);
   let rgba = state.tiles.get(addr.file);
-  if (!rgba) rgba = remember(state.tiles, addr.file, await fetchRgba(addr.file, s.tile, s.tile * s.intervals), TILE_CACHE_SIZE);
+  if (!rgba) rgba = remember(state.tiles, addr.file, await fetchRgba(addr.file, s.tile, s.tile * (s.frames ?? s.intervals)), TILE_CACHE_SIZE);
   return extractSeries(rgba, s, addr.y, addr.x);
 }
 
@@ -86,15 +87,23 @@ function lutFor(iv) {
   // A value of one source packing step is not drawn: the true amount could be anything from
   // almost zero up to that step, so which cells show it is noise (DECISIONS D15).
   const hide = (iv.source_quantum || 0) * 1.01;
-  const key = `${iv.hours}|${hide}`;
+  const key = `${state.layer.id}|${iv.hours}|${hide}`;
   if (!state.luts.has(key)) state.luts.set(key, buildLut(state.layer, iv.hours, hide));
   return state.luts.get(key);
 }
 
+const isProbability = () => state.layer.kind === 'probability';
 const displayUnits = () => (state.layer.display ? state.layer.display.units : state.layer.units);
-/** "0.82 mm/h" for rate layers, the stored value otherwise. */
-const formatDisplay = (stored, iv) => formatValue(displayValue(state.layer, stored, iv.hours), displayUnits());
-const formatAmount = (stored, iv) => `${formatValue(stored, state.layer.units)} in ${iv.hours} h`;
+/** Headline number: "0.82 mm/h" for the rate layer, "34 %" for a probability layer. */
+function formatDisplay(stored, iv) {
+  if (isProbability()) return `${Math.round(stored)} %`;
+  return formatValue(displayValue(state.layer, stored, iv.hours), displayUnits());
+}
+/** What the headline is made of: "4.90 mm in 6 h", or "17 of 50 members". */
+function formatAmount(stored, iv) {
+  if (isProbability()) return `${Math.round(stored * state.layer.members / 100)} of ${state.layer.members} members`;
+  return `${formatValue(stored, state.layer.units)} in ${iv.hours} h`;
+}
 
 // ---------- map ----------
 
@@ -193,18 +202,21 @@ function hover(e) {
 
 function select(latlng) {
   const hit = valueAt(latlng);
-  if (!hit) return;
-  state.selected = { row: hit.row, col: hit.col };
+  if (hit) selectCell(hit.row, hit.col);
+}
+
+function selectCell(row, col) {
+  state.selected = { row, col };
   state.series = null;
   state.hoverIndex = null;
-  const rect = cellBounds(state.manifest.grid, hit.row, hit.col);
+  const rect = cellBounds(state.manifest.grid, row, col);
   if (selectionRect) selectionRect.setBounds(rect);
   else selectionRect = L.rectangle(rect, { pane: 'borders', color: '#1f1f1d', weight: 2, fill: false, interactive: false }).addTo(map);
   $('readout').hidden = false;
   updatePanel();
 
   const token = ++state.seriesToken;
-  loadSeries(hit.row, hit.col).then((series) => {
+  loadSeries(row, col).then((series) => {
     if (token !== state.seriesToken) return; // another cell was selected meanwhile
     state.series = series;
     buildTable();
@@ -251,10 +263,12 @@ function renderDetail() {
   else big.append(formatDisplay(amount, iv), Object.assign(document.createElement('small'), { textContent: ` · ${formatAmount(amount, iv)}` }));
   $('readout-when').replaceChildren(rangeUtc(iv), document.createElement('br'), rangeSecond(iv));
 
+  const quantum = iv.source_quantum ?? iv.source_quantum_mm;
   const rows = [
     ['Grid index', `row ${sel.row}, col ${sel.col}`],
-    ['Source precision', iv.source_quantum ? `${iv.source_quantum.toFixed(2)} ${state.layer.units} (ECMWF packing step)` : 'n/a'],
+    ['Source precision', quantum ? `${quantum.toFixed(2)} mm (ECMWF packing step)` : 'n/a'],
   ];
+  if (isProbability()) rows.unshift(['Ensemble', `${state.layer.members} perturbed members, raw count, not calibrated`]);
   const dl = $('readout-details');
   dl.replaceChildren();
   for (const [k, v] of rows) {
@@ -267,6 +281,8 @@ function renderChart() {
   const { layer, manifest, series, selected } = state;
   const svg = $('chart');
   $('chart-title').textContent = `${layer.display ? layer.display.title : layer.title} at this cell, ${displayUnits()} · days in UTC`;
+  const prob = isProbability();
+  svg.classList.toggle('prob', prob); // bars take the hue of the layer they belong to
   if (!series) {
     svg.replaceChildren();
     $('chart-status').textContent = 'Loading the full forecast for this cell…';
@@ -279,7 +295,7 @@ function renderChart() {
   const rates = amounts.map((a, i) => displayValue(layer, a, ivs[i].hours));
   const faint = ivs.map((iv, i) => series[i] > 0 && lutFor(iv)[series[i]] === 0);
   renderChartSvg(svg, {
-    intervals: ivs, rates, faint, current: state.index,
+    intervals: ivs, rates, faint, current: state.index, yMax: layer.axis_max,
     referenceIso: manifest.run.reference_utc, dayLabel: (iso) => shortDay(iso, 'UTC'),
     onPick: (i) => { setPlaying(false); state.hoverIndex = null; show(i).catch(fail); },
     onHover: (i) => { if (state.hoverIndex !== i) { state.hoverIndex = i; renderDetail(); } },
@@ -295,6 +311,16 @@ function renderChart() {
   let peak = 0;
   rates.forEach((r, i) => { if (r > rates[peak]) peak = i; });
   const days = (ivs[ivs.length - 1].end_step - ivs[0].start_step) / 24;
+  if (prob) {
+    $('chart-summary').textContent = total > 0
+      ? `Highest chance: ${formatDisplay(amounts[peak], ivs[peak])} (${formatAmount(amounts[peak], ivs[peak])}), ${rangeUtc(ivs[peak])}.`
+      : `No member reaches ${layer.threshold_mm} mm in any 24 h window over ${days} days.`;
+    $('chart-note').textContent =
+      `Each bar is one 24 h window. The chance is the share of the ${layer.members} ensemble members that reach ` +
+      `${layer.threshold_mm} mm, so it moves in steps of ${+(100 / layer.members).toFixed(1)} %. ` +
+      'Tap a bar to show that window on the map.';
+    return;
+  }
   $('chart-summary').textContent = total > 0
     ? `Total over ${days} days: ${formatValue(total, layer.units)}. Highest mean rate: ${formatDisplay(amounts[peak], ivs[peak])}, ${rangeUtc(ivs[peak])}.`
     : `No precipitation in any interval over ${days} days.`;
@@ -309,15 +335,18 @@ function buildTable() {
   const table = $('series-table');
   table.replaceChildren();
   const head = table.createTHead().insertRow();
-  for (const h of ['Starts (UTC)', `Starts (${SECOND_ZONE.label})`, 'h', displayUnits(), layer.units]) {
+  const prob = isProbability();
+  for (const h of ['Starts (UTC)', `Starts (${SECOND_ZONE.label})`, 'h', displayUnits(), prob ? 'members' : layer.units]) {
     head.append(Object.assign(document.createElement('th'), { textContent: h }));
   }
   const body = table.createTBody();
   layer.intervals.forEach((iv, i) => {
     const amount = decodeValue(layer.encoding, state.series[i]);
     const row = body.insertRow();
-    for (const v of [dayTime(iv.start_utc, 'UTC'), dayTime(iv.start_utc, SECOND_ZONE.id), iv.hours,
-      displayValue(layer, amount, iv.hours).toFixed(2), amount.toFixed(2)]) {
+    const cells = prob
+      ? [Math.round(amount), Math.round(amount * layer.members / 100)]
+      : [displayValue(layer, amount, iv.hours).toFixed(2), amount.toFixed(2)];
+    for (const v of [dayTime(iv.start_utc, 'UTC'), dayTime(iv.start_utc, SECOND_ZONE.id), iv.hours, ...cells]) {
       row.insertCell().textContent = v;
     }
   });
@@ -360,6 +389,7 @@ async function show(i) {
 
 function legendTitle(iv) {
   const d = state.layer.display;
+  if (isProbability()) return `Share of ${state.layer.members} ensemble members, % · ${iv.hours} h window`;
   return d ? `${d.title}, ${d.units} · ${iv.hours} h interval` : `${state.layer.title}, ${state.layer.units}`;
 }
 
@@ -395,6 +425,44 @@ function describeRun(manifest, layer) {
   $('licence').href = manifest.attribution.licence_url;
 }
 
+// ---------- layers ----------
+
+function buildLayerPicker(manifest) {
+  const select = $('layer');
+  const single = manifest.layers.filter((l) => l.kind !== 'probability');
+  const prob = manifest.layers.filter((l) => l.kind === 'probability');
+  for (const l of single) {
+    select.append(new Option(`${l.display ? l.display.title : l.title} (single forecast)`, l.id));
+  }
+  if (prob.length) {
+    const group = document.createElement('optgroup');
+    group.label = `Chance, from ${prob[0].members} ensemble members`;
+    for (const l of prob) group.append(new Option(l.title, l.id));
+    select.append(group);
+    $('layer-pick').hidden = false;
+    select.addEventListener('change', () => setLayer(select.value).catch(fail));
+  } else if (manifest.ensemble && manifest.ensemble.status === 'unavailable') {
+    $('ensemble-note').textContent = 'Ensemble probabilities could not be built for this run.';
+    $('ensemble-note').hidden = false;
+  }
+}
+
+/** Switch what the map and chart show, staying at the same moment of the forecast. */
+async function setLayer(id) {
+  const layer = state.layers.find((l) => l.id === id);
+  if (!layer || layer === state.layer) return;
+  setPlaying(false);
+  const at = Date.parse(state.layer.intervals[state.index].start_utc);
+  let index = layer.intervals.findIndex((iv) => Date.parse(iv.end_utc) > at);
+  if (index < 0) index = layer.intervals.length - 1;
+  Object.assign(state, { layer, codes: null, series: null, hoverIndex: null });
+  $('layer').value = id;
+  buildLegend(layer);
+  $('slider').max = layer.intervals.length - 1;
+  await show(index);
+  if (state.selected) selectCell(state.selected.row, state.selected.col);
+}
+
 // ---------- controls ----------
 
 function setPlaying(on) {
@@ -424,8 +492,9 @@ async function main() {
     const layer = manifest.layers[0];
     if (layer.encoding.format !== 'png-rg16') throw new Error(`unsupported encoding ${layer.encoding.format}`);
     if (!layer.series || layer.series.layout !== 'frames-stacked') throw new Error('manifest has no usable time series');
-    Object.assign(state, { manifest, layer });
+    Object.assign(state, { manifest, layer, layers: manifest.layers });
     describeRun(manifest, layer);
+    buildLayerPicker(manifest);
     buildLegend(layer);
     initMap(manifest);
     const slider = $('slider');
@@ -439,6 +508,7 @@ async function main() {
     window.__app = state;
     window.__map = map;
     window.__selectCell = (lat, lon) => select({ lat, lng: lon });
+    window.__setLayer = setLayer;
   } catch (e) { fail(e); }
 }
 

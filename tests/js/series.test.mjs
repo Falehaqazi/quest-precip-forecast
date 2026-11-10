@@ -28,3 +28,19 @@ test('extractSeries reads interval k from frame k of a frames-stacked tile', () 
   assert.deepEqual(Array.from(extractSeries(rgba, s, 0, 0)), [7, 0, 0]);
   assert.throws(() => extractSeries(rgba.subarray(4), s, 0, 0));
 });
+
+test('layers that share a tile file read their own frames (frame_offset)', () => {
+  // 2 thresholds x 3 windows in one file, as the ensemble layers do: frame = threshold*3 + window
+  const t = 4, frames = 6;
+  const rgba = new Uint8ClampedArray(t * t * frames * 4);
+  for (let k = 0; k < frames; k++) {
+    const j = ((k * t + 1) * t + 2) * 4;         // cell y=1, x=2 in every frame
+    rgba[j + 1] = 10 + k;                         // codes 10..15
+  }
+  const first = { tile: t, intervals: 3, frames, frame_offset: 0 };
+  const second = { tile: t, intervals: 3, frames, frame_offset: 3 };
+  assert.deepEqual(Array.from(extractSeries(rgba, first, 1, 2)), [10, 11, 12]);
+  assert.deepEqual(Array.from(extractSeries(rgba, second, 1, 2)), [13, 14, 15]);
+  assert.throws(() => extractSeries(rgba, { tile: t, intervals: 3, frames, frame_offset: 4 }, 1, 2));
+  assert.throws(() => extractSeries(rgba, { tile: t, intervals: 3 }, 1, 2)); // file holds 6 frames, not 3
+});

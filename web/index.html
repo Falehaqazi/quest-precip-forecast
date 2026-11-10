@@ -22,8 +22,13 @@
       <div id="map" aria-label="Map of forecast precipitation"></div>
 
       <section id="legend" class="legend" aria-label="Legend">
+        <label class="layer-pick" id="layer-pick" hidden>
+          <span class="sr-only">What the map shows</span>
+          <select id="layer"></select>
+        </label>
         <div id="legend-title" class="panel-title"></div>
         <div id="legend-scale" class="legend-scale"></div>
+        <p id="ensemble-note" class="small muted" hidden></p>
       </section>
 
       <div id="hover" class="hover" hidden></div>
