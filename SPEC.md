@@ -1,8 +1,8 @@
 # SPEC — Precipitation forecast web app from ECMWF Open Data
 
-Status: **draft v0.1, 2026-11-10**. Items marked **[ASSUMED]** are my defaults and
-need confirmation (see "Open questions"). Items under "Verified data facts" were
-read from the live ECMWF servers on 2026-11-10 ~11:20 UTC, not from memory.
+Status: **v0.2, 2026-11-10** — scope questions answered by Faleha (see §8).
+Items under "Verified data facts" were read from the live ECMWF servers on
+2026-11-10 ~11:20 UTC, not from memory.
 
 ## 1. Purpose
 
@@ -12,7 +12,7 @@ point as a time series. Built and deployed inside one 72-hour session.
 
 ## 2. Users
 
-**[ASSUMED]** Two kinds of reader, in priority order:
+Global map, reviewer-first. Two kinds of reader, in priority order:
 
 1. A technically literate reviewer (QUEST Lab) who wants to see that the numbers
    are right and traceable: which model run, which field, what units, what was
@@ -40,12 +40,25 @@ window, and the page states the model run it came from.
 - F7. Colour legend with units. ECMWF attribution and CC BY 4.0 notice
   (required by the terms of use, see §5.6).
 
+### Next after v1 is live and tested (committed, not a stretch goal)
+
+- E1. Ensemble **probability of exceedance** (P[precip > X mm] per interval)
+  from the `enfo` stream, as a second map layer and a second series in the
+  point chart. v1 must be built so this plugs in without a rewrite:
+  - the manifest describes a list of **layers** (`id`, `kind`, `units`,
+    value encoding, legend, per-interval files); v1 ships exactly one layer;
+  - the frontend renders "a layer" generically (legend, units and colour scale
+    come from the manifest, not from code that assumes mm);
+  - the pipeline's fetch/decode/grid code takes stream and parameter as
+    arguments rather than hard-coding `oper`/`tp`.
+  The `enfo` files have not been inspected yet (§5.7); E1 starts with that.
+
 ### Should have (if time allows, in this order)
 
 - S1. Accumulation presets: 24 h totals, whole-run total.
 - S2. Location search (place name → point).
 - S3. Instantaneous rate layer (`tprate`, mm/h) as an alternative to accumulation.
-- S4. Ensemble information (probability of > X mm) from the `enfo` stream.
+- S4. A small server-side API for point queries (see §7).
 
 ### Out of scope
 
@@ -165,8 +178,8 @@ limit of 2000 simultaneous connections overall; no per-client rate limit found.
 
 ## 6. Processing (what the pipeline must do)
 
-1. Find the newest **complete** run (**[ASSUMED]** 00z/12z only, so the horizon
-   is always 360 h; alternative: any of the four runs with a varying horizon).
+1. Find the newest **complete** run. 00z/12z only, so the horizon is always
+   360 h (06z/18z stop at 144 h and are ignored).
 2. For each step, read the `.index`, range-request only the `tp` message
    (≈0.3–0.55 MB each; whole run on the order of 40 MB, estimated not measured).
 3. Decode, convert m → mm.
@@ -178,25 +191,31 @@ limit of 2000 simultaneous connections overall; no per-client rate limit found.
 6. Write compact per-interval rasters + a manifest (run time, steps, valid
    times in UTC, units, scale) for the frontend.
 
-## 7. Architecture **[ASSUMED — see open questions]**
+## 7. Architecture
+
+Static first, API later.
 
 - **Pipeline**: Python + `eccodes` (ships libaec) + numpy, run on a schedule in
   GitHub Actions. Tests with pytest.
 - **Serving**: static files (frontend + processed data) on GitHub Pages. No
   application server, so nothing to keep alive or cold-start.
-- **Frontend**: plain TypeScript/JS with a web map library, canvas raster
-  overlay, small chart for the point series.
-- Alternative considered: FastAPI service on a PaaS doing point queries
-  server-side. More moving parts and a server to babysit; more "full stack".
+- **Frontend**: plain JS with a web map library, canvas raster overlay, small
+  chart for the point series. No build step unless one becomes necessary.
+- **Later (S4)**: a small API service for point queries, only after v1 and E1.
+  The static data format stays the source of truth; the API would read it.
 
 Local machine facts that constrain this: Node 26 and git are installed;
-**Python, Docker, `gh` and all deploy CLIs are absent**; the repo has no remote.
+Python is installed for this project via winget (approved); Docker, `gh` and
+all deploy CLIs are absent; the repo has no remote yet.
 
-## 8. Open questions
+## 8. Decisions taken with Faleha (2026-11-10)
 
-1. Audience and geographic focus (global vs a region with a default view).
-2. Architecture: static + scheduled pipeline, or a real backend service.
-3. Local Python: may I install it, or should the pipeline avoid Python.
-4. v1 forecast scope: deterministic IFS only, or ensemble from the start.
-5. A GitHub repository (and the host account) must be created by you; I cannot
-   create accounts or enter credentials.
+| Question | Answer |
+|---|---|
+| Audience / default view | Global map, reviewer-first |
+| Architecture | Static site + scheduled pipeline first; API later |
+| Local Python | Install Python 3.12 via winget |
+| Forecast scope | Deterministic IFS 0.25°, 00z/12z for v1. Ensemble probability of exceedance is the first addition after the slice is live and tested; format and UI designed for it now (E1) |
+
+Still open: a GitHub repository (and Pages enabled on it) must be created by
+Faleha; account creation and sign-in are not something the assistant does.
