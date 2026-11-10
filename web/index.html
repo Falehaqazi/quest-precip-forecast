@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Precipitation forecast — ECMWF IFS open data</title>
+  <meta name="description" content="Forecast precipitation per 3- or 6-hour interval from the ECMWF IFS model, shown on the model's own 0.25° grid.">
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="title">
+      <h1>Precipitation forecast</h1>
+      <p id="run-line" class="muted">Loading forecast…</p>
+    </div>
+    <p id="stale" class="stale" hidden></p>
+  </header>
+
+  <main>
+    <div id="map" aria-label="Map of forecast precipitation"></div>
+
+    <section id="legend" class="panel legend" aria-label="Legend">
+      <div id="legend-title" class="panel-title"></div>
+      <div id="legend-scale" class="legend-scale"></div>
+    </section>
+
+    <section id="readout" class="panel readout" aria-live="polite" hidden>
+      <button id="readout-close" class="close" aria-label="Close">×</button>
+      <div class="panel-title">Selected grid cell</div>
+      <div id="readout-value" class="big"></div>
+      <dl id="readout-details"></dl>
+    </section>
+
+    <div id="hover" class="hover" hidden></div>
+    <div id="error" class="error" role="alert" hidden></div>
+  </main>
+
+  <section class="controls" aria-label="Forecast time">
+    <button id="play" class="play" aria-label="Play">▶</button>
+    <div class="time">
+      <div id="interval-utc" class="interval"></div>
+      <div id="interval-local" class="muted small"></div>
+    </div>
+    <input id="slider" type="range" min="0" max="0" step="1" value="0" aria-label="Forecast interval">
+    <div id="lead" class="lead muted small"></div>
+  </section>
+
+  <footer>
+    <span id="attribution"></span>
+    <a id="licence" href="https://creativecommons.org/licenses/by/4.0/" rel="license">CC BY 4.0</a>
+    · Raw model output, not a warning service. Each value is an average over a grid cell of roughly 28 km.
+  </footer>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/geo/topojson-client.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
