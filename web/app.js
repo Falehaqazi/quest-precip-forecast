@@ -1,33 +1,26 @@
-import { indexOf, centerOf, cellBounds, rgbaToCodes, decodeValue, displayValue, buildLut } from './grid.js?v=__BUILD__';
+import {
+  indexOf, centerOf, cellBounds, rgbaToCodes, decodeValue, displayValue, buildLut,
+  seriesAddress, extractSeries,
+} from './grid.js?v=__BUILD__';
+import { SECOND_ZONE, rangeUtc, rangeSecond, shortDay, dayTime, timeOnly } from './time.js?v=__BUILD__';
+import { render as renderChartSvg } from './chart.js?v=__BUILD__';
 
 const DATA_DIR = 'data/';
 const STALE_AFTER_HOURS = 24;   // a fresh 00z/12z run is 7-20 h old when viewed (see LIMITATIONS)
 const PLAY_INTERVAL_MS = 650;
 const CACHE_SIZE = 16;          // decoded intervals kept in memory (~2 MB each)
+const TILE_CACHE_SIZE = 8;      // decoded series tiles kept in memory (~0.35 MB each)
 const MIN_ZOOM_FLOOR = -4;      // far below any real fit; the working minimum is computed per box size
 
 const $ = (id) => document.getElementById(id);
 const state = {
   manifest: null, layer: null, index: 0, codes: null, luts: new Map(),
   cache: new Map(), selected: null, playing: false, renderToken: 0, blobUrl: null,
+  series: null, seriesToken: 0, tiles: new Map(), hoverIndex: null,
 };
 let map, overlay, selectionRect;
 
 // ---------- formatting ----------
-
-const utcDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
-const utcTime = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'UTC' });
-const locDay = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-const locTime = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
-
-function formatRange(startIso, endIso, day, time) {
-  const a = new Date(startIso), b = new Date(endIso);
-  const sameDay = day.format(a) === day.format(b);
-  return `${day.format(a)} ${time.format(a)} – ${sameDay ? '' : day.format(b) + ' '}${time.format(b)}`;
-}
-const rangeUtc = (iv) => `${formatRange(iv.start_utc, iv.end_utc, utcDay, utcTime)} UTC`;
-const rangeLocal = (iv) => `${formatRange(iv.start_utc, iv.end_utc, locDay, locTime)} (${localZone})`;
 
 function formatValue(v, units) {
   const digits = v < 10 ? 2 : 1;
@@ -48,27 +41,44 @@ async function loadManifest() {
   return m;
 }
 
-/** Fetch and decode one interval raster into Uint16 codes. */
-async function loadCodes(i) {
-  if (state.cache.has(i)) return state.cache.get(i);
-  const { grid, run } = state.manifest;
-  const iv = state.layer.intervals[i];
+/** Fetch a data PNG and return its RGBA bytes, untouched by colour management. */
+async function fetchRgba(file, width, height) {
   // File names repeat from run to run, so the run time is part of the URL to defeat caches.
-  const res = await fetch(`${DATA_DIR}${iv.file}?run=${encodeURIComponent(run.reference_utc)}`);
-  if (!res.ok) throw new Error(`${iv.file}: HTTP ${res.status}`);
+  const res = await fetch(`${DATA_DIR}${file}?run=${encodeURIComponent(state.manifest.run.reference_utc)}`);
+  if (!res.ok) throw new Error(`${file}: HTTP ${res.status}`);
   // No colour-space conversion and no alpha premultiplication: the bytes are data, not colour.
   const bmp = await createImageBitmap(await res.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
-  if (bmp.width !== grid.ni || bmp.height !== grid.nj) {
-    throw new Error(`${iv.file} is ${bmp.width}x${bmp.height}, grid is ${grid.ni}x${grid.nj}`);
+  if (bmp.width !== width || bmp.height !== height) {
+    throw new Error(`${file} is ${bmp.width}x${bmp.height}, expected ${width}x${height}`);
   }
   const c = document.createElement('canvas');
-  c.width = grid.ni; c.height = grid.nj;
+  c.width = width; c.height = height;
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(bmp, 0, 0);
-  const codes = rgbaToCodes(ctx.getImageData(0, 0, grid.ni, grid.nj).data, grid.ni * grid.nj);
-  state.cache.set(i, codes);
-  if (state.cache.size > CACHE_SIZE) state.cache.delete(state.cache.keys().next().value);
-  return codes;
+  return ctx.getImageData(0, 0, width, height).data;
+}
+
+function remember(cache, key, value, limit) {
+  cache.set(key, value);
+  if (cache.size > limit) cache.delete(cache.keys().next().value);
+  return value;
+}
+
+/** One interval raster as Uint16 codes. */
+async function loadCodes(i) {
+  if (state.cache.has(i)) return state.cache.get(i);
+  const { grid } = state.manifest;
+  const rgba = await fetchRgba(state.layer.intervals[i].file, grid.ni, grid.nj);
+  return remember(state.cache, i, rgbaToCodes(rgba, grid.ni * grid.nj), CACHE_SIZE);
+}
+
+/** Every interval for one grid cell, as Uint16 codes, from the cell's series tile. */
+async function loadSeries(row, col) {
+  const s = state.layer.series;
+  const addr = seriesAddress(s, row, col);
+  let rgba = state.tiles.get(addr.file);
+  if (!rgba) rgba = remember(state.tiles, addr.file, await fetchRgba(addr.file, s.tile, s.tile * s.intervals), TILE_CACHE_SIZE);
+  return extractSeries(rgba, s, addr.y, addr.x);
 }
 
 /** Lookup table for an interval; intervals of the same length share one. */
@@ -81,11 +91,9 @@ function lutFor(iv) {
   return state.luts.get(key);
 }
 
+const displayUnits = () => (state.layer.display ? state.layer.display.units : state.layer.units);
 /** "0.82 mm/h" for rate layers, the stored value otherwise. */
-function formatDisplay(stored, iv) {
-  const d = state.layer.display;
-  return formatValue(displayValue(state.layer, stored, iv.hours), d ? d.units : state.layer.units);
-}
+const formatDisplay = (stored, iv) => formatValue(displayValue(state.layer, stored, iv.hours), displayUnits());
 const formatAmount = (stored, iv) => `${formatValue(stored, state.layer.units)} in ${iv.hours} h`;
 
 // ---------- map ----------
@@ -187,35 +195,132 @@ function select(latlng) {
   const hit = valueAt(latlng);
   if (!hit) return;
   state.selected = { row: hit.row, col: hit.col };
+  state.series = null;
+  state.hoverIndex = null;
   const rect = cellBounds(state.manifest.grid, hit.row, hit.col);
   if (selectionRect) selectionRect.setBounds(rect);
   else selectionRect = L.rectangle(rect, { pane: 'borders', color: '#1f1f1d', weight: 2, fill: false, interactive: false }).addTo(map);
-  updateReadout();
+  $('readout').hidden = false;
+  updatePanel();
+
+  const token = ++state.seriesToken;
+  loadSeries(hit.row, hit.col).then((series) => {
+    if (token !== state.seriesToken) return; // another cell was selected meanwhile
+    state.series = series;
+    buildTable();
+    updatePanel();
+  }).catch((e) => {
+    if (token !== state.seriesToken) return;
+    console.error(e);
+    $('chart-status').textContent = `The time series could not be loaded (${e.message}).`;
+  });
 }
 
-function updateReadout() {
-  const sel = state.selected;
-  if (!sel || !state.codes) return;
-  const { grid } = state.manifest;
-  const iv = state.layer.intervals[state.index];
-  const value = decodeValue(state.layer.encoding, state.codes[sel.row * grid.ni + sel.col]);
-  $('readout-value').innerHTML = '';
-  $('readout-value').append(formatValue(value, state.layer.units), Object.assign(document.createElement('small'), { textContent: ` in ${iv.hours} h` }));
+function deselect() {
+  state.selected = null; state.series = null; state.seriesToken++;
+  $('readout').hidden = true;
+  if (selectionRect) { selectionRect.remove(); selectionRect = null; }
+}
+
+// ---------- selected-cell panel: numbers, chart, table ----------
+
+/** Stored amount of the selected cell in interval i, or null while it is not loaded. */
+function selectedAmount(i) {
+  const { grid } = state.manifest, sel = state.selected, enc = state.layer.encoding;
+  if (state.series) return decodeValue(enc, state.series[i]);
+  if (i === state.index && state.codes) return decodeValue(enc, state.codes[sel.row * grid.ni + sel.col]);
+  return null;
+}
+
+function updatePanel() {
+  if (!state.selected) return;
+  renderDetail();
+  renderChart();
+}
+
+/** Headline numbers for the interval under the pointer, or else the one shown on the map. */
+function renderDetail() {
+  const { grid } = state.manifest, sel = state.selected;
+  const i = state.hoverIndex ?? state.index;
+  const iv = state.layer.intervals[i];
+  const amount = selectedAmount(i);
+  $('cell-title').textContent = `Grid cell centred on ${formatLatLon(centerOf(grid, sel.row, sel.col))}`;
+  const big = $('readout-value');
+  big.replaceChildren();
+  if (amount === null) big.append('…');
+  else big.append(formatDisplay(amount, iv), Object.assign(document.createElement('small'), { textContent: ` · ${formatAmount(amount, iv)}` }));
+  $('readout-when').replaceChildren(rangeUtc(iv), document.createElement('br'), rangeSecond(iv));
+
   const rows = [
-    ['Mean rate', formatDisplay(value, iv)],
-    ['Cell centre', formatLatLon(centerOf(grid, sel.row, sel.col))],
-    ['Interval', rangeUtc(iv)],
-    ['Your time', rangeLocal(iv)],
     ['Grid index', `row ${sel.row}, col ${sel.col}`],
     ['Source precision', iv.source_quantum ? `${iv.source_quantum.toFixed(2)} ${state.layer.units} (ECMWF packing step)` : 'n/a'],
   ];
   const dl = $('readout-details');
-  dl.innerHTML = '';
+  dl.replaceChildren();
   for (const [k, v] of rows) {
     dl.append(Object.assign(document.createElement('dt'), { textContent: k }),
       Object.assign(document.createElement('dd'), { textContent: v }));
   }
-  $('readout').hidden = false;
+}
+
+function renderChart() {
+  const { layer, manifest, series, selected } = state;
+  const svg = $('chart');
+  $('chart-title').textContent = `${layer.display ? layer.display.title : layer.title} at this cell, ${displayUnits()} · days in UTC`;
+  if (!series) {
+    svg.replaceChildren();
+    $('chart-status').textContent = 'Loading the full forecast for this cell…';
+    $('chart-summary').textContent = '';
+    $('chart-note').textContent = '';
+    return;
+  }
+  const ivs = layer.intervals;
+  const amounts = Array.from(series, (c) => decodeValue(layer.encoding, c));
+  const rates = amounts.map((a, i) => displayValue(layer, a, ivs[i].hours));
+  const faint = ivs.map((iv, i) => series[i] > 0 && lutFor(iv)[series[i]] === 0);
+  renderChartSvg(svg, {
+    intervals: ivs, rates, faint, current: state.index,
+    referenceIso: manifest.run.reference_utc, dayLabel: (iso) => shortDay(iso, 'UTC'),
+    onPick: (i) => { setPlaying(false); state.hoverIndex = null; show(i).catch(fail); },
+    onHover: (i) => { if (state.hoverIndex !== i) { state.hoverIndex = i; renderDetail(); } },
+  });
+
+  // The chart and the map are two files cut from the same numbers; say so if they ever differ.
+  const mapCode = state.codes ? state.codes[selected.row * manifest.grid.ni + selected.col] : null;
+  $('chart-status').textContent = (mapCode !== null && mapCode !== series[state.index])
+    ? `Warning: the chart (${series[state.index]}) and the map (${mapCode}) disagree for this cell and interval.`
+    : '';
+
+  const total = amounts.reduce((a, b) => a + b, 0);
+  let peak = 0;
+  rates.forEach((r, i) => { if (r > rates[peak]) peak = i; });
+  const days = (ivs[ivs.length - 1].end_step - ivs[0].start_step) / 24;
+  $('chart-summary').textContent = total > 0
+    ? `Total over ${days} days: ${formatValue(total, layer.units)}. Highest mean rate: ${formatDisplay(amounts[peak], ivs[peak])}, ${rangeUtc(ivs[peak])}.`
+    : `No precipitation in any interval over ${days} days.`;
+  $('chart-note').textContent =
+    'Bar height is the mean rate in each interval; bars are 3 h wide up to +144 h and 6 h wide after. ' +
+    'Tap a bar to show that interval on the map.' +
+    (faint.some(Boolean) ? ' Pale bars are too small for the map to draw.' : '');
+}
+
+function buildTable() {
+  const { layer } = state;
+  const table = $('series-table');
+  table.replaceChildren();
+  const head = table.createTHead().insertRow();
+  for (const h of ['Starts (UTC)', `Starts (${SECOND_ZONE.label})`, 'h', displayUnits(), layer.units]) {
+    head.append(Object.assign(document.createElement('th'), { textContent: h }));
+  }
+  const body = table.createTBody();
+  layer.intervals.forEach((iv, i) => {
+    const amount = decodeValue(layer.encoding, state.series[i]);
+    const row = body.insertRow();
+    for (const v of [dayTime(iv.start_utc, 'UTC'), dayTime(iv.start_utc, SECOND_ZONE.id), iv.hours,
+      displayValue(layer, amount, iv.hours).toFixed(2), amount.toFixed(2)]) {
+      row.insertCell().textContent = v;
+    }
+  });
 }
 
 // ---------- rendering ----------
@@ -226,7 +331,7 @@ async function show(i) {
   $('slider').value = i;
   $('slider').setAttribute('aria-valuetext', rangeUtc(iv));
   $('interval-utc').textContent = rangeUtc(iv);
-  $('interval-local').textContent = rangeLocal(iv);
+  $('interval-local').textContent = rangeSecond(iv);
   $('lead').textContent = `+${iv.start_step} h to +${iv.end_step} h`;
   $('legend-title').textContent = legendTitle(iv);
 
@@ -250,7 +355,7 @@ async function show(i) {
   overlay.setUrl(url);
   if (state.blobUrl) URL.revokeObjectURL(state.blobUrl);
   state.blobUrl = url;
-  updateReadout();
+  updatePanel();
 }
 
 function legendTitle(iv) {
@@ -280,7 +385,7 @@ function describeRun(manifest, layer) {
   const ageH = (Date.now() - ref.getTime()) / 3600000;
   const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(ref);
   $('run-line').textContent =
-    `${manifest.run.centre} ${manifest.run.model} ${manifest.run.resolution_deg}° · run ${day} ${utcTime.format(ref)} UTC ` +
+    `${manifest.run.centre} ${manifest.run.model} ${manifest.run.resolution_deg}° · run ${day} ${timeOnly(manifest.run.reference_utc)} UTC ` +
     `(${Math.round(ageH)} h ago) · ${layer.intervals.length} intervals to +${manifest.run.last_step} h`;
   if (ageH > STALE_AFTER_HOURS) {
     $('stale').textContent = `This forecast run is ${Math.round(ageH)} h old. A newer run should exist; the update job may have failed.`;
@@ -318,6 +423,7 @@ async function main() {
     const manifest = await loadManifest();
     const layer = manifest.layers[0];
     if (layer.encoding.format !== 'png-rg16') throw new Error(`unsupported encoding ${layer.encoding.format}`);
+    if (!layer.series || layer.series.layout !== 'frames-stacked') throw new Error('manifest has no usable time series');
     Object.assign(state, { manifest, layer });
     describeRun(manifest, layer);
     buildLegend(layer);
@@ -326,12 +432,13 @@ async function main() {
     slider.max = layer.intervals.length - 1;
     slider.addEventListener('input', () => { setPlaying(false); show(Number(slider.value)).catch(fail); });
     $('play').addEventListener('click', () => setPlaying(!state.playing));
-    $('readout-close').addEventListener('click', () => {
-      state.selected = null; $('readout').hidden = true;
-      if (selectionRect) { selectionRect.remove(); selectionRect = null; }
-    });
+    $('readout-close').addEventListener('click', deselect);
+    new ResizeObserver(() => { if (state.selected && state.series) renderChart(); }).observe($('chart'));
     await show(0);
-    window.__app = state; // for debugging and for checking values against the pipeline
+    // For debugging and for checking values against the pipeline from the console.
+    window.__app = state;
+    window.__map = map;
+    window.__selectCell = (lat, lon) => select({ lat, lng: lon });
   } catch (e) { fail(e); }
 }
 

@@ -32,8 +32,20 @@
 
     <aside id="readout" class="side" aria-live="polite" hidden>
       <button id="readout-close" class="close" aria-label="Close">×</button>
-      <div class="panel-title">Selected grid cell</div>
+      <div id="cell-title" class="panel-title">Selected grid cell</div>
       <div id="readout-value" class="big"></div>
+      <div id="readout-when" class="when"></div>
+      <figure class="chart">
+        <figcaption id="chart-title" class="panel-title"></figcaption>
+        <svg id="chart" role="img" aria-labelledby="chart-title"></svg>
+        <p id="chart-status" class="small status"></p>
+      </figure>
+      <p id="chart-summary" class="small"></p>
+      <p id="chart-note" class="muted small"></p>
+      <details class="table-wrap">
+        <summary>Show all values as a table</summary>
+        <div class="table-scroll"><table id="series-table"></table></div>
+      </details>
       <dl id="readout-details"></dl>
     </aside>
   </main>
