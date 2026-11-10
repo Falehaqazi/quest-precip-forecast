@@ -68,3 +68,45 @@ test('legend classes use lower bounds; below the first stop is transparent', () 
   assert.equal(legendClass(stops, 1.95), 2);
   assert.equal(legendClass(stops, 500), 3);
 });
+
+// ---- colour scale normalised to mean rate (DECISIONS D14) ----
+import { displayValue, buildLut } from '../../web/grid.js';
+
+const rateLayer = {
+  encoding: { scale: 0.05, offset: 0 },
+  display: { normalise: 'per_hour', units: 'mm/h' },
+  legend: { stops: [{ from: 0.1, color: '#cde2fb' }, { from: 1, color: '#3987e5' }, { from: 10, color: '#104281' }] },
+};
+const code = (mm) => Math.round(mm / 0.05);
+
+test('displayValue divides by the interval length only for per_hour layers', () => {
+  assert.equal(displayValue(rateLayer, 6, 3), 2);
+  assert.equal(displayValue(rateLayer, 6, 6), 1);
+  assert.equal(displayValue({ encoding: rateLayer.encoding }, 6, 6), 6);
+});
+
+test('the same mean rate gets the same colour in a 3 h and a 6 h interval', () => {
+  const lut3 = buildLut(rateLayer, 3), lut6 = buildLut(rateLayer, 6);
+  for (const rate of [0.1, 0.5, 1, 2.5, 10, 40]) {
+    assert.equal(lut3[code(rate * 3)], lut6[code(rate * 6)], `rate ${rate} mm/h`);
+    assert.notEqual(lut3[code(rate * 3)], 0);
+  }
+  // and the same AMOUNT is a different class when the rate differs: 6 mm is 2 mm/h vs 1 mm/h here
+  assert.notEqual(lut3[code(30)], lut6[code(30)]); // 10 mm/h vs 5 mm/h
+});
+
+test('lut: below the first stop is transparent; colours are packed little-endian RGBA', () => {
+  const lut3 = buildLut(rateLayer, 3);
+  assert.equal(lut3[0], 0);
+  assert.equal(lut3[code(0.25)], 0);            // 0.083 mm/h
+  assert.equal(lut3[code(0.3)], 0xfffbe2cd);    // 0.1 mm/h -> #cde2fb as A,B,G,R
+  assert.equal(lut3[code(3)], 0xffe58739);      // 1 mm/h -> #3987e5
+  assert.equal(lut3[65535], 0xff814210);        // far above the last stop -> #104281
+});
+
+test('lut: values at or below hideAtOrBelow are transparent even if their class is visible', () => {
+  const lut = buildLut(rateLayer, 3, 0.5);
+  assert.equal(lut[code(0.3)], 0);
+  assert.equal(lut[code(0.5)], 0);
+  assert.notEqual(lut[code(0.55)], 0);
+});

@@ -1,4 +1,4 @@
-import { indexOf, centerOf, cellBounds, rgbaToCodes, decodeValue, legendClass } from './grid.js';
+import { indexOf, centerOf, cellBounds, rgbaToCodes, decodeValue, displayValue, buildLut } from './grid.js';
 
 const DATA_DIR = 'data/';
 const STALE_AFTER_HOURS = 24;   // a fresh 00z/12z run is 7-20 h old when viewed (see LIMITATIONS)
@@ -7,7 +7,7 @@ const CACHE_SIZE = 16;          // decoded intervals kept in memory (~2 MB each)
 
 const $ = (id) => document.getElementById(id);
 const state = {
-  manifest: null, layer: null, index: 0, codes: null, lut: null,
+  manifest: null, layer: null, index: 0, codes: null, luts: new Map(),
   cache: new Map(), selected: null, playing: false, renderToken: 0, blobUrl: null,
 };
 let map, overlay, selectionRect;
@@ -43,7 +43,7 @@ async function loadManifest() {
   const res = await fetch(`${DATA_DIR}manifest.json`, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`manifest.json: HTTP ${res.status}`);
   const m = await res.json();
-  if (m.schema !== 1) throw new Error(`unsupported manifest schema ${m.schema}`);
+  if (m.schema !== 2) throw new Error(`unsupported manifest schema ${m.schema}`);
   return m;
 }
 
@@ -70,21 +70,19 @@ async function loadCodes(i) {
   return codes;
 }
 
-/** code -> packed RGBA lookup table, built from the layer's legend. */
-function buildLut(layer) {
-  const lut = new Uint32Array(65536);
-  const stops = layer.legend.stops.map((s) => {
-    const n = parseInt(s.color.slice(1), 16);
-    return { from: s.from, r: n >> 16, g: (n >> 8) & 255, b: n & 255 };
-  });
-  for (let code = 0; code < 65536; code++) {
-    const k = legendClass(stops, decodeValue(layer.encoding, code));
-    if (k < 0) continue; // transparent
-    const s = stops[k];
-    lut[code] = (255 << 24) | (s.b << 16) | (s.g << 8) | s.r; // little-endian RGBA
-  }
-  return lut;
+/** Lookup table for an interval; intervals of the same length share one. */
+function lutFor(iv) {
+  const key = String(iv.hours);
+  if (!state.luts.has(key)) state.luts.set(key, buildLut(state.layer, iv.hours));
+  return state.luts.get(key);
 }
+
+/** "0.82 mm/h" for rate layers, the stored value otherwise. */
+function formatDisplay(stored, iv) {
+  const d = state.layer.display;
+  return formatValue(displayValue(state.layer, stored, iv.hours), d ? d.units : state.layer.units);
+}
+const formatAmount = (stored, iv) => `${formatValue(stored, state.layer.units)} in ${iv.hours} h`;
 
 // ---------- map ----------
 
@@ -171,7 +169,8 @@ function hover(e) {
   const hit = valueAt(e.latlng);
   const el = $('hover');
   if (!hit) { el.hidden = true; return; }
-  el.textContent = formatValue(hit.value, state.layer.units);
+  const iv = state.layer.intervals[state.index];
+  el.textContent = `${formatDisplay(hit.value, iv)} · ${formatAmount(hit.value, iv)}`;
   el.style.left = `${e.containerPoint.x}px`;
   el.style.top = `${e.containerPoint.y}px`;
   el.hidden = false;
@@ -196,6 +195,7 @@ function updateReadout() {
   $('readout-value').innerHTML = '';
   $('readout-value').append(formatValue(value, state.layer.units), Object.assign(document.createElement('small'), { textContent: ` in ${iv.hours} h` }));
   const rows = [
+    ['Mean rate', formatDisplay(value, iv)],
     ['Cell centre', formatLatLon(centerOf(grid, sel.row, sel.col))],
     ['Interval', rangeUtc(iv)],
     ['Your time', rangeLocal(iv)],
@@ -221,7 +221,7 @@ async function show(i) {
   $('interval-utc').textContent = rangeUtc(iv);
   $('interval-local').textContent = rangeLocal(iv);
   $('lead').textContent = `+${iv.start_step} h to +${iv.end_step} h`;
-  $('legend-title').textContent = `${state.layer.title}: ${state.layer.units} per ${iv.hours} h`;
+  $('legend-title').textContent = legendTitle(iv);
 
   const token = ++state.renderToken;
   const codes = await loadCodes(i);
@@ -234,7 +234,7 @@ async function show(i) {
   const ctx = canvas.getContext('2d');
   const img = ctx.createImageData(ni, nj);
   const px = new Uint32Array(img.data.buffer);
-  const lut = state.lut;
+  const lut = lutFor(iv);
   for (let k = 0; k < px.length; k++) px[k] = lut[codes[k]];
   ctx.putImageData(img, 0, 0);
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
@@ -244,6 +244,11 @@ async function show(i) {
   if (state.blobUrl) URL.revokeObjectURL(state.blobUrl);
   state.blobUrl = url;
   updateReadout();
+}
+
+function legendTitle(iv) {
+  const d = state.layer.display;
+  return d ? `${d.title}, ${d.units} · ${iv.hours} h interval` : `${state.layer.title}, ${state.layer.units}`;
 }
 
 function buildLegend(layer) {
@@ -306,7 +311,7 @@ async function main() {
     const manifest = await loadManifest();
     const layer = manifest.layers[0];
     if (layer.encoding.format !== 'png-rg16') throw new Error(`unsupported encoding ${layer.encoding.format}`);
-    Object.assign(state, { manifest, layer, lut: buildLut(layer) });
+    Object.assign(state, { manifest, layer });
     describeRun(manifest, layer);
     buildLegend(layer);
     initMap(manifest);

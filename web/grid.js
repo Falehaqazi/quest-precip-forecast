@@ -52,6 +52,35 @@ export function legendClass(stops, value) {
   return k;
 }
 
+/**
+ * The number the colour scale is applied to. Layers whose display says "per_hour" store an
+ * amount per interval and are coloured by the mean rate, so 3 h and 6 h intervals share one
+ * scale; anything else is shown as stored.
+ */
+export function displayValue(layer, stored, hours) {
+  return layer.display && layer.display.normalise === 'per_hour' ? stored / hours : stored;
+}
+
+/**
+ * code -> packed RGBA (little-endian) lookup table for one interval length.
+ * A stored value at or below `hideAtOrBelow` is transparent whatever its class.
+ */
+export function buildLut(layer, hours, hideAtOrBelow = -Infinity) {
+  const lut = new Uint32Array(65536);
+  const stops = layer.legend.stops;
+  const packed = stops.map((s) => {
+    const n = parseInt(s.color.slice(1), 16);
+    return ((255 << 24) | ((n & 255) << 16) | (n & 0xff00) | (n >> 16)) >>> 0;
+  });
+  for (let code = 0; code < 65536; code++) {
+    const stored = decodeValue(layer.encoding, code);
+    if (stored <= hideAtOrBelow) continue;
+    const k = legendClass(stops, displayValue(layer, stored, hours));
+    if (k >= 0) lut[code] = packed[k];
+  }
+  return lut;
+}
+
 /** Hours (possibly fractional) between two ISO instants. */
 export function hoursBetween(isoA, isoB) {
   return (Date.parse(isoB) - Date.parse(isoA)) / 3600000;

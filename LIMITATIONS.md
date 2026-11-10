@@ -38,9 +38,12 @@ Last updated 2026-11-10, after the first deployment
   run the most negative raw difference was −0.244 mm (interval ending +288 h).
   Negatives are clamped to 0; count and size are recorded per interval in the
   manifest. The site then rounds to 0.05 mm on top of that.
-- **Interval length changes at 144 h** from 3 h to 6 h. Amounts are per interval
-  and the colour scale is in mm per interval, so the map looks wetter after
-  144 h for the same rain rate. The legend title states the interval length.
+- **Interval length changes at 144 h** from 3 h to 6 h. The map colours the
+  mean rate (mm/h), so a colour means the same rate before and after the
+  switch. But a 6 h mean flattens short bursts more than a 3 h mean, so peak
+  colours after +144 h are systematically weaker for the same weather. The
+  mean rate is also not the rain rate at any moment: 6 mm in 3 h shows as
+  2 mm/h whether it fell steadily or in ten minutes.
 - **Only 00z/12z runs.** The page can lag the newest model run by 12 h plus
   ECMWF's ~7 h publication delay. The "stale" banner only appears after 24 h.
 

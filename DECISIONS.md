@@ -107,3 +107,26 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   the owner can make) and matches GitHub's default. The workflow already
   triggered on both names. Cost: an orphan `master` branch remains on GitHub
   until the owner deletes it and switches the default branch.
+
+## D14. The colour scale is mean rate in mm/h, not mm per interval
+- **Choice**: the map colours `amount / interval length`. The legend is in mm/h
+  with one set of class bounds (0.1, 0.2, 0.5, 1, 2, 5, 10, 20) for the whole
+  forecast. Stored values stay amounts per interval (mm); the readout shows
+  both the amount ("4.90 mm in 6 h") and the mean rate.
+- **Alternative A**: keep mm per interval (the first version). Rejected: the
+  interval doubles from 3 h to 6 h at +144 h, so the same blue meant twice the
+  rain rate before the switch as after it. Day 1 and day 10 were not comparable
+  (reported by Faleha from the live site).
+- **Alternative B**: a 24 h total view. Comparable across the whole forecast and
+  arguably the more useful quantity at long leads, but it is a second layer with
+  its own time axis and pipeline output. It stays on the list (SPEC S1); it was
+  not needed to remove the inconsistency.
+- **Why**: dividing by the interval length removes the inconsistency exactly,
+  needs no new data, and keeps full time resolution.
+- **What it does not fix**: a 6 h mean smooths short bursts more than a 3 h mean.
+  A 1-hour downpour of 12 mm is 4 mm/h in a 3 h interval and 2 mm/h in a 6 h one.
+  So peaks still look weaker after +144 h for a reason that is about averaging,
+  not weather. This is stated in LIMITATIONS.
+- **Where it lives**: the manifest's `display` block says `normalise: per_hour`;
+  the browser does the division. The pipeline does not store rates, so the
+  amounts remain exactly what was derived from `tp`.

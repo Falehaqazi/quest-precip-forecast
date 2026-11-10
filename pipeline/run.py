@@ -23,16 +23,18 @@ from .encode import codes_to_png, quantise
 from .gribio import Field, decode, expect_accumulated_tp
 from .process import deaccumulate, iso_utc, metres_to_mm, valid_time
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 TP_SCALE_MM = 0.05          # see DECISIONS D7
 FETCH_WORKERS = 4
 
-# Legend for per-interval precipitation: lower bound of each class in mm, and its colour.
-# Values below the first bound are drawn transparent.
+# Legend for precipitation, as MEAN RATE over the interval in mm/h (lower bound of each class
+# and its colour). The stored values stay amounts per interval; the browser divides by the
+# interval length, so a colour means the same rate in a 3 h and in a 6 h interval (DECISIONS D14).
 # One hue, light -> dark (sequential: more precipitation is darker). No rainbow.
+# Rates below the first bound are drawn transparent.
 TP_LEGEND = [
-    (0.1, "#cde2fb"), (0.5, "#9ec5f4"), (1, "#86b6ef"), (2, "#5598e7"), (5, "#2a78d6"),
-    (10, "#256abf"), (20, "#184f95"), (50, "#104281"), (100, "#0d366b"),
+    (0.1, "#cde2fb"), (0.2, "#9ec5f4"), (0.5, "#6da7ec"), (1, "#3987e5"),
+    (2, "#256abf"), (5, "#184f95"), (10, "#104281"), (20, "#0d366b"),
 ]
 
 ATTRIBUTION = {
@@ -117,7 +119,10 @@ def build(out: Path, run: catalogue.Run, steps: list[int]) -> dict:
             "units": "mm",
             "encoding": {"format": "png-rg16", "scale": TP_SCALE_MM, "offset": 0.0,
                          "formula": "value = offset + scale * (R * 256 + G)"},
-            "legend": {"type": "threshold", "transparent_below": TP_LEGEND[0][0],
+            "display": {"normalise": "per_hour", "units": "mm/h",
+                        "title": "Mean precipitation rate",
+                        "formula": "displayed = value / interval hours"},
+            "legend": {"type": "threshold", "applies_to": "displayed", "transparent_below": TP_LEGEND[0][0],
                        "stops": [{"from": v, "color": c} for v, c in TP_LEGEND]},
             "intervals": entries,
         }],
