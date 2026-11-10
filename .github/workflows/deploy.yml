@@ -1,0 +1,54 @@
+name: Build forecast and deploy
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+  schedule:
+    # ECMWF published the 00z run at ~07:34 UTC and the 12z run at ~19:34 UTC (observed
+    # 2026-11-09/10). First attempt half an hour later, one retry two hours after that.
+    # Re-running on the same run is harmless: it rebuilds identical files.
+    - cron: "5 8,10 * * *"
+    - cron: "5 20,22 * * *"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install -r requirements.txt
+      - name: Tests (pipeline)
+        run: python -m pytest -q
+      - name: Tests (browser grid code)
+        run: node --test tests/js/*.test.mjs
+      - name: Build data from the newest complete ECMWF run
+        run: python -m pipeline.run --out web/data
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
