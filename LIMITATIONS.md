@@ -1,22 +1,40 @@
 # LIMITATIONS
 
 What is wrong, approximate or untested. Kept blunt on purpose.
-Last updated 2026-11-10, after the first deployment
+Last updated 2026-11-11, after the ensemble layers went live
 (https://falehaqazi.github.io/quest-precip-forecast/).
 
-## Not done yet
-- **The scheduled refresh has never fired.** The one successful build so far was
-  triggered by a push (2026-11-10 12:06 UTC). SPEC's "runs unattended twice in a
-  row" is unmet until the 20:05 UTC and next 08:05 UTC crons have been seen to
-  work. GitHub delays or skips scheduled runs under load, and disables schedules
-  in repos with no activity for 60 days.
-- **The first deploy attempt failed**: the `github-pages` environment only allows
-  the `main` branch and the code was on `master`. The local branch was renamed to
-  `main` and pushed. A stale `master` branch is still on GitHub and is probably
-  still the repo's default branch; pushes to it build but cannot deploy.
+## Operations: what has and has not been seen to work
+- **Scheduled refresh is unreliable in timing.** The schedule asks for 08:05,
+  10:05, 20:05 and 22:05 UTC. Observed so far: of the two evening attempts on
+  2026-11-10, **one** ran, at 00:35 UTC, four and a half hours late (or two and
+  a half, if it was the 22:05 one; GitHub does not say). It built and deployed
+  the 12z run correctly. On 2026-11-11 the 08:05 run had not started by
+  09:33 UTC although ECMWF's 00z files were complete. So the page can show a
+  run many hours older than the newest one. It always shows the run time and
+  its age, and a banner after 24 h, but nothing fixes the delay.
+  SPEC's "refresh runs unattended twice in a row" is still unmet: once so far.
+- **One deploy timed out.** The push of the ensemble work (run #7) built in
+  2 min 51 s and then the Pages deploy step gave up after 10 minutes
+  ("Timeout reached, aborting!"). GitHub's API and the Pages site were also
+  unreachable from the development machine at that time. The cause is unknown;
+  the next run deployed the same commit without trouble. An earlier deploy
+  (run #3) also took nine minutes and succeeded. A failed deploy leaves the
+  previous site in place.
+- **Build time with the ensemble**: 2 min 37 s to 2 min 51 s for the whole
+  workflow on GitHub's runner (two runs). Locally it took 4 to 6 minutes.
+- The pipeline has now processed one 00z run (locally and in CI) and one 12z
+  run (in CI, unattended). The path "ensemble missing or failed its self-check,
+  publish without it" has run only in unit tests, and the page's "probabilities
+  could not be built" note has never been seen in a browser.
 - The workflow's action versions (`checkout@v4`, `setup-python@v5`,
-  `setup-node@v4`, `upload-pages-artifact@v3`) emit a "Node.js 20 is deprecated"
-  warning. They work today; they will need bumping.
+  `setup-node@v4`, `upload-pages-artifact@v3`, `deploy-pages@v4`) emit a
+  "Node.js 20 is deprecated" warning. They work today; they will need bumping.
+- Monitoring from outside is limited: GitHub's public API allows 60 requests an
+  hour without a login, which the development session exhausted once while
+  polling a build.
+
+## Not done yet
 - No location search, no 24 h totals of the single forecast.
 
 ## The ensemble probabilities
@@ -49,9 +67,11 @@ Last updated 2026-11-10, after the first deployment
 - The self-check needs ECMWF's `ep` files, which appear about 20 minutes after
   the member files. If a build runs in between, the probabilities are
   published unchecked and the manifest says so.
-- Only one model run of ensemble data (2026-11-10 00z) has been processed and
-  looked at. The 12z run and failure paths (missing member, late files) have
-  only been exercised by unit tests or not at all.
+- Two runs of ensemble data have been processed (2026-11-10 00z and 12z). The
+  detailed checks (recount of single cells from the raw member files, the
+  1 mm analysis) were done on the 00z run only. For the 12z run only the
+  automatic self-check ran: mean absolute difference from ECMWF's product
+  0.59, 0.36, 0.11 and 0.03 points at 5, 10, 25 and 50 mm.
 
 ## The data
 - **This is raw model output.** No bias correction, no downscaling, no
@@ -101,9 +121,6 @@ Last updated 2026-11-10, after the first deployment
 - ecCodes is trusted as the reference decoder.
 
 ## The pipeline
-- The pipeline has run successfully once on Linux (GitHub runner) and a few
-  times on Windows, all on the same model run (2026-11-10 00z). It has never
-  processed a 12z run or handled a missing/late run for real.
 - **ecCodes crashed the Python process when called from worker threads**
   (Windows, eccodes 2.50.0; exit without traceback). I did not investigate the
   cause; decoding now happens on the main thread only and downloads stay
