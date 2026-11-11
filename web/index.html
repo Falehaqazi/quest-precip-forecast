@@ -19,7 +19,7 @@
 
   <main>
     <div class="stage">
-      <div id="map" aria-label="Map of forecast precipitation"></div>
+      <div id="map" aria-label="Map of forecast precipitation. Arrow keys move the map, plus and minus zoom, Enter picks the place at the centre."></div>
 
       <section id="legend" class="legend" aria-label="Legend">
         <div class="map-actions">
@@ -41,14 +41,15 @@
       <div id="error" class="error" role="alert" hidden></div>
     </div>
 
-    <aside id="readout" class="side" aria-live="polite" hidden>
+    <aside id="readout" class="side" aria-label="Forecast for the picked place" hidden>
       <button id="readout-close" class="close" aria-label="Close">×</button>
       <div id="cell-title" class="panel-title">Selected grid cell</div>
       <div id="readout-value" class="big"></div>
       <div id="readout-when" class="when"></div>
       <figure class="chart">
         <figcaption id="chart-title" class="panel-title"></figcaption>
-        <svg id="chart" role="img" aria-labelledby="chart-title"></svg>
+        <svg id="chart" role="group" tabindex="0" aria-labelledby="chart-title" aria-describedby="chart-keys chart-summary"></svg>
+        <p id="chart-keys" class="sr-only">Left and right arrow keys move between time steps. Home and End go to the first and last.</p>
         <p id="chart-status" class="small status"></p>
       </figure>
       <p id="chart-summary" class="small"></p>
@@ -59,6 +60,8 @@
       </details>
       <dl id="readout-details"></dl>
     </aside>
+    <!-- Spoken once when a place is picked. Not updated on every time step: the slider announces those. -->
+    <p id="announce" class="sr-only" aria-live="polite"></p>
   </main>
 
   <section class="controls" aria-label="Forecast time">

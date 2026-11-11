@@ -87,6 +87,8 @@ main { display: flex; flex: 1 1 auto; min-height: 0; }
 .chart svg.prob .bar.current { fill: #86330e; }
 .chart .band { fill: rgba(31, 31, 29, .09); }
 .chart .hit { fill: transparent; cursor: pointer; }
+.chart svg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chart svg:focus:not(:focus-visible) { outline: none; }
 .status { color: #7a1414; }
 .status:empty { display: none; }
 #chart-summary { margin-bottom: 4px; }

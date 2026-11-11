@@ -273,6 +273,8 @@ function selectCell(row, col) {
     state.series = series;
     buildTable();
     updatePanel();
+    const iv = state.layer.intervals[state.index];
+    $('announce').textContent = `${$('cell-title').textContent}. ${$('readout-value').textContent}, ${rangeUtc(iv)}.`;
   }).catch((e) => {
     if (token !== state.seriesToken) return;
     console.error(e);
@@ -558,6 +560,18 @@ async function main() {
     slider.addEventListener('input', () => { setPlaying(false); show(Number(slider.value)).catch(fail); });
     $('play').addEventListener('click', () => setPlaying(!state.playing));
     $('readout-close').addEventListener('click', deselect);
+    // Keyboard: arrows on the chart step through time; Enter on the map picks the centre.
+    $('chart').addEventListener('keydown', (e) => {
+      const last = state.layer.intervals.length - 1;
+      const to = { ArrowLeft: state.index - 1, ArrowRight: state.index + 1, Home: 0, End: last }[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      setPlaying(false);
+      show(Math.min(last, Math.max(0, to))).catch(fail);
+    });
+    $('map').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target === $('map')) select(map.getCenter());
+    });
     new ResizeObserver(() => { if (state.selected && state.series) renderChart(); }).observe($('chart'));
     // Open on the interval that contains the present moment, not on the start of the run,
     // which is already 7 to 20 hours in the past when a run is published and viewed.
