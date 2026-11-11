@@ -18,6 +18,9 @@ Last updated 2026-11-11, after the ensemble layers went live
   the hourly schedule and its skip check have therefore **never been seen
   running on GitHub**, only tested locally. Until that changes, the site is
   refreshed by pushes and by the manual "Run workflow" button.
+  At 15:05 UTC the schedule was changed to every 15 minutes (DECISIONS D28).
+  If that does not produce a scheduled run within a few hours, the agreed
+  fallback is to call the refresh manual, on the page and in the README.
   The page always shows the run time and its age, and a banner after 24 h.
 - **The refresh makes no commits.** It can only read the repository and deploy
   to Pages. After the commit history ends, the Actions run list and the data on

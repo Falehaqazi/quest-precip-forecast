@@ -140,7 +140,7 @@ meant different things before and after the forecast's 3 h → 6 h change (D14).
 ## How the refresh works
 
 - A GitHub Actions workflow (`.github/workflows/deploy.yml`) is scheduled every
-  hour. Its first step asks whether ECMWF has a newer complete run than the one
+  15 minutes. Its first step asks whether ECMWF has a newer complete run than the one
   on the site, whether the site was built from older code, or whether its
   probabilities are missing. If none of those is true the run stops there.
   Otherwise it runs the tests, builds the data and deploys.

@@ -380,3 +380,19 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   for, as any tap on the map does.
 - **Cost**: the first tap changes the view sharply, which can disorient; there is
   still no place name, only coordinates.
+
+## D28. The schedule asks every 15 minutes; no token, no outside service
+- **Situation**: five hours after the hourly schedule (D24) was pushed, no
+  scheduled run had started; one had ever started in the repository.
+- **Options put to Faleha**: (A) ask GitHub more often; (B) have each run start
+  the next with the workflow's own token (`actions: write`, fragile, a job idling
+  between runs); (C) a scheduled task on her own PC with a personal token;
+  (D) an outside scheduler with a token; (E) manual only.
+- **Choice (Faleha)**: A. No token and no third-party service. If no scheduled
+  run fires within a few hours, fall back to E: the "Run workflow" button, said
+  plainly on the page and in the README.
+- **What A can and cannot do**: it multiplies the chances by four at almost no
+  cost, because skipped runs stop within a minute. It helps if GitHub is dropping
+  or delaying individual runs. It does nothing if GitHub is not scheduling this
+  repository at all, which I cannot tell from outside.
+- **Unchanged**: `contents: read`, no commit or push step, Pages artifact deploy.

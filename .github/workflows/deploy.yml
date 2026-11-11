@@ -5,11 +5,11 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    # Every hour. GitHub starts scheduled workflows late or skips them (seen 2026-11-10/11:
-    # one of two evening runs, at 00:35 UTC instead of 20:05 or 22:05), so two fixed times
-    # a day were not enough. Most hourly runs stop at the "Is there anything to build?" step.
-    # Minute 17 avoids the top of the hour, when the scheduler is busiest.
-    - cron: "17 * * * *"
+    # Every 15 minutes. GitHub starts scheduled workflows late or not at all: by 2026-11-11
+    # 15:00 UTC exactly one scheduled run had ever started in this repository, and none of five
+    # hourly ones. More chances cost little because almost every run stops at the
+    # "Is there anything to build?" step. The minutes avoid the top of the hour.
+    - cron: "7,22,37,52 * * * *"
 
 # This workflow cannot write to the repository. It reads the code, builds the site in the
 # runner, and publishes it to GitHub Pages as a deployment artifact. It makes no commits,
