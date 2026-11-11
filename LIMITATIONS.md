@@ -5,15 +5,19 @@ Last updated 2026-11-11, after the ensemble layers went live
 (https://falehaqazi.github.io/quest-precip-forecast/).
 
 ## Operations: what has and has not been seen to work
-- **Scheduled refresh is unreliable in timing.** The schedule asks for 08:05,
-  10:05, 20:05 and 22:05 UTC. Observed so far: of the two evening attempts on
-  2026-11-10, **one** ran, at 00:35 UTC, four and a half hours late (or two and
-  a half, if it was the 22:05 one; GitHub does not say). It built and deployed
-  the 12z run correctly. On 2026-11-11 the 08:05 run had not started by
-  09:33 UTC although ECMWF's 00z files were complete. So the page can show a
-  run many hours older than the newest one. It always shows the run time and
-  its age, and a banner after 24 h, but nothing fixes the delay.
-  SPEC's "refresh runs unattended twice in a row" is still unmet: once so far.
+- **Scheduled refresh depends on GitHub starting the workflow, which it does
+  late or not at all.** With the first schedule (08:05, 10:05, 20:05, 22:05
+  UTC) one of two evening attempts on 2026-11-10 ran, at 00:35 UTC, and the
+  08:05 attempt on 2026-11-11 had not started by 09:33. The schedule is now
+  hourly with a check that skips the build when nothing is new (DECISIONS D24).
+  That gives 24 chances a day instead of 4; it does not guarantee any of them.
+  The page always shows the run time and its age, and a banner after 24 h.
+- **The refresh makes no commits.** It can only read the repository and deploy
+  to Pages. After the commit history ends, the Actions run list and the data on
+  the live site keep changing; the repository does not.
+- If the hourly check itself is wrong (says "nothing to build" when there is),
+  the site goes stale silently apart from the age shown on the page. The check
+  has unit tests and was run once by hand against the live site.
 - **One deploy timed out.** The push of the ensemble work (run #7) built in
   2 min 51 s and then the Pages deploy step gave up after 10 minutes
   ("Timeout reached, aborting!"). GitHub's API and the Pages site were also
