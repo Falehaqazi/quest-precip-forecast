@@ -11,6 +11,13 @@ Last updated 2026-11-11, after the ensemble layers went live
   08:05 attempt on 2026-11-11 had not started by 09:33. The schedule is now
   hourly with a check that skips the build when nothing is new (DECISIONS D24).
   That gives 24 chances a day instead of 4; it does not guarantee any of them.
+  **Record so far: one scheduled run has ever started** (2026-11-11 00:35 UTC,
+  under the old schedule). After the hourly schedule was pushed at 09:55 UTC
+  on 2026-11-11, none of the 10:17, 11:17, 12:17, 13:17 or 14:17 runs had
+  started by 14:23 UTC. The workflow is listed as active. I do not know why;
+  the hourly schedule and its skip check have therefore **never been seen
+  running on GitHub**, only tested locally. Until that changes, the site is
+  refreshed by pushes and by the manual "Run workflow" button.
   The page always shows the run time and its age, and a banner after 24 h.
 - **The refresh makes no commits.** It can only read the repository and deploy
   to Pages. After the commit history ends, the Actions run list and the data on
