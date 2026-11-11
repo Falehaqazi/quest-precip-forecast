@@ -20,7 +20,7 @@ const state = {
   cache: new Map(), selected: null, playing: false, renderToken: 0, blobUrl: null,
   series: null, seriesToken: 0, tiles: new Map(), hoverIndex: null,
 };
-let map, overlay, selectionRect;
+let map, overlay, selectionRect, selectionRing;
 
 // ---------- formatting ----------
 
@@ -214,6 +214,15 @@ function selectCell(row, col) {
   const rect = cellBounds(state.manifest.grid, row, col);
   if (selectionRect) selectionRect.setBounds(rect);
   else selectionRect = L.rectangle(rect, { pane: 'borders', color: '#1f1f1d', weight: 2, fill: false, interactive: false }).addTo(map);
+  // The cell outline is a fraction of a pixel when zoomed out, so a ring of fixed screen size
+  // marks the place at every zoom: white underneath, dark on top, visible on any colour.
+  const c = centerOf(state.manifest.grid, row, col);
+  const at = [c.lat, c.lon];
+  if (selectionRing) selectionRing.forEach((r) => r.setLatLng(at));
+  else {
+    selectionRing = [['#ffffff', 5], ['#1f1f1d', 2]].map(([color, weight]) => L.circleMarker(at, {
+      pane: 'borders', radius: 8, color, weight, opacity: 1, fill: false, interactive: false }).addTo(map));
+  }
   $('readout').hidden = false;
   updatePanel();
 
@@ -234,6 +243,7 @@ function deselect() {
   state.selected = null; state.series = null; state.seriesToken++;
   $('readout').hidden = true;
   if (selectionRect) { selectionRect.remove(); selectionRect = null; }
+  if (selectionRing) { selectionRing.forEach((r) => r.remove()); selectionRing = null; }
 }
 
 // ---------- selected-cell panel: numbers, chart, table ----------
