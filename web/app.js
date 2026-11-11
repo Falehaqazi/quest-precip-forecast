@@ -12,6 +12,7 @@ const STALE_AFTER_HOURS = 24;   // a fresh 00z/12z run is 7-20 h old when viewed
 const PLAY_INTERVAL_MS = 650;
 const CACHE_SIZE = 16;          // decoded intervals kept in memory (~2 MB each)
 const TILE_CACHE_SIZE = 8;      // decoded series tiles kept in memory (~0.35 MB each)
+const PICK_PX_PER_CELL = 6;      // picking a place zooms in until a grid cell is at least this wide
 const MIN_ZOOM_FLOOR = -4;      // far below any real fit; the working minimum is computed per box size
 
 const $ = (id) => document.getElementById(id);
@@ -115,7 +116,7 @@ function initMap(manifest) {
   // zoomSnap 0: the minimum zoom is whatever makes the whole world fit this container,
   // which is not a round number (and is below 0 on a phone).
   map = L.map('map', {
-    crs: L.CRS.EPSG4326, zoomSnap: 0, zoomDelta: 0.5, minZoom: MIN_ZOOM_FLOOR, maxZoom: 7,
+    crs: L.CRS.EPSG4326, zoomSnap: 0, zoomDelta: 1, minZoom: MIN_ZOOM_FLOOR, maxZoom: 7,
     attributionControl: false, maxBounds: world, maxBoundsViscosity: 1,
   });
   map.createPane('land').style.zIndex = 200;
@@ -158,6 +159,8 @@ function initMap(manifest) {
   }).catch((e) => console.warn('outlines failed to load', e));
 
   map.on('click', (e) => select(e.latlng));
+  $('world').addEventListener('click', () => map.fitBounds(world, { animate: false }));
+  initLocate();
   map.on('mousemove', (e) => hover(e));
   map.on('mouseout', () => { $('hover').hidden = true; });
 }
@@ -202,9 +205,47 @@ function hover(e) {
   el.hidden = false;
 }
 
+/** Pick the grid cell nearest to a point and bring it into view at a usable zoom. */
 function select(latlng) {
   const hit = valueAt(latlng);
-  if (hit) selectCell(hit.row, hit.col);
+  if (!hit) return false;
+  selectCell(hit.row, hit.col);
+  focusOnCell(hit.row, hit.col);
+  $('hint').hidden = true;
+  return true;
+}
+
+/**
+ * With the whole world on a phone a grid cell is a quarter of a pixel wide, so the first tap
+ * can only mean "around here". Zoom in on the picked cell until cells are wide enough to
+ * see and to adjust with a second tap. Never zooms out, and does nothing if already close.
+ */
+function focusOnCell(row, col) {
+  const { grid } = state.manifest;
+  const c = centerOf(grid, row, col);
+  const pxPerCell = (512 * 2 ** map.getZoom() / 360) * Math.abs(grid.dlon); // EPSG:4326: 360 deg = 512 px at zoom 0
+  const more = Math.log2(PICK_PX_PER_CELL / pxPerCell);
+  // Not animated: an animated zoom reports the old zoom level until it ends, and the
+  // world-fit logic that runs when the side panel opens would undo it.
+  if (more > 0) map.setView([c.lat, c.lon], Math.min(map.getMaxZoom(), map.getZoom() + more), { animate: false });
+  else if (!map.getBounds().pad(-0.1).contains([c.lat, c.lon])) map.panTo([c.lat, c.lon], { animate: false });
+}
+
+/** "Use my location": the browser's own position, used only to pick the nearest grid cell. */
+function initLocate() {
+  const button = $('locate');
+  if (!('geolocation' in navigator)) return; // leave the button hidden
+  button.hidden = false;
+  const say = (text) => { $('locate-status').textContent = text; $('locate-status').hidden = !text; };
+  button.addEventListener('click', () => {
+    say('Finding your location…');
+    navigator.geolocation.getCurrentPosition((pos) => {
+      say(select({ lat: pos.coords.latitude, lng: pos.coords.longitude }) ? '' : 'Your location is outside the map.');
+    }, (err) => {
+      say(err.code === 1 ? 'Location permission was not given. Tap the map instead.'
+        : 'Your location could not be found. Tap the map instead.');
+    }, { enableHighAccuracy: false, timeout: 15000, maximumAge: 600000 });
+  });
 }
 
 function selectCell(row, col) {

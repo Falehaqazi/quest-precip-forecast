@@ -44,6 +44,13 @@ main { display: flex; flex: 1 1 auto; min-height: 0; }
   padding: 8px 10px; box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.map-actions { display: flex; gap: 8px; margin-bottom: 6px; }
+.chip {
+  font: inherit; font-size: 13px; min-height: 36px; padding: 6px 12px; cursor: pointer; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 18px;
+}
+.chip:hover { border-color: var(--accent); }
+#hint, #locate-status { margin-bottom: 6px; }
 .layer-pick { display: block; margin-bottom: 6px; }
 .layer-pick select {
   width: 100%; max-width: 330px; font: inherit; font-size: 13px; padding: 5px 6px; color: var(--ink);

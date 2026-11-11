@@ -22,6 +22,12 @@
       <div id="map" aria-label="Map of forecast precipitation"></div>
 
       <section id="legend" class="legend" aria-label="Legend">
+        <div class="map-actions">
+          <button id="locate" type="button" class="chip" hidden>Use my location</button>
+          <button id="world" type="button" class="chip">Whole world</button>
+        </div>
+        <p id="locate-status" class="small muted" role="status" hidden></p>
+        <p id="hint" class="small muted">Tap the map to pick a place. It zooms in so you can tap again to adjust.</p>
         <label class="layer-pick" id="layer-pick" hidden>
           <span class="sr-only">What the map shows</span>
           <select id="layer"></select>
