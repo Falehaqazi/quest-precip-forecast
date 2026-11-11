@@ -416,7 +416,7 @@ function describeRun(manifest, layer) {
   const day = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(ref);
   $('run-line').textContent =
     `${manifest.run.centre} ${manifest.run.model} ${manifest.run.resolution_deg}° · run ${day} ${timeOnly(manifest.run.reference_utc)} UTC ` +
-    `(${Math.round(ageH)} h ago) · ${layer.intervals.length} intervals to +${manifest.run.last_step} h`;
+    `(${Math.round(ageH)} h ago) · forecast to +${manifest.run.last_step} h`;
   if (ageH > STALE_AFTER_HOURS) {
     $('stale').textContent = `This forecast run is ${Math.round(ageH)} h old. A newer run should exist; the update job may have failed.`;
     $('stale').hidden = false;
@@ -489,12 +489,16 @@ function fail(e) {
 async function main() {
   try {
     const manifest = await loadManifest();
-    const layer = manifest.layers[0];
-    if (layer.encoding.format !== 'png-rg16') throw new Error(`unsupported encoding ${layer.encoding.format}`);
-    if (!layer.series || layer.series.layout !== 'frames-stacked') throw new Error('manifest has no usable time series');
+    for (const l of manifest.layers) {
+      if (l.encoding.format !== 'png-rg16') throw new Error(`unsupported encoding ${l.encoding.format}`);
+      if (!l.series || l.series.layout !== 'frames-stacked') throw new Error('manifest has no usable time series');
+    }
+    // The manifest names the layer to open on; fall back to the first one.
+    const layer = manifest.layers.find((l) => l.id === manifest.default_layer) || manifest.layers[0];
     Object.assign(state, { manifest, layer, layers: manifest.layers });
     describeRun(manifest, layer);
     buildLayerPicker(manifest);
+    $('layer').value = layer.id;
     buildLegend(layer);
     initMap(manifest);
     const slider = $('slider');

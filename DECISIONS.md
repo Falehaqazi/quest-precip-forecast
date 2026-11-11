@@ -332,3 +332,18 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   or failed), because the site would otherwise be from older code.
 - **Still true**: GitHub may start an hourly run late or drop it. Hourly makes
   a long gap unlikely; it does not make one impossible.
+
+## D25. The page opens on "chance of at least 5 mm in 24 h"
+- **Choice**: the manifest names the opening layer (`default_layer`); the
+  pipeline sets it to the lowest ensemble threshold when the probabilities were
+  built, and to the rate layer otherwise. The frontend just follows it.
+- **Alternative**: open on the single-forecast rate map (the first version), or
+  on 10 mm.
+- **Why**: asked for by Faleha so the first screen shows something. On the
+  2026-11-10 00z run the 5 mm layer colours 29 % of the map in its first window;
+  the rate map colours about 17 % in its first interval, and the 25 and 50 mm
+  layers far less. 5 mm rather than 10 because it is the lowest threshold the
+  data supports (D20) and so the fullest map.
+- **Cost**: the first thing a visitor sees is now a 24 h window rather than a
+  3 h interval, and a probability rather than an amount. The selector above the
+  legend says which, and the rate map is one tap away.

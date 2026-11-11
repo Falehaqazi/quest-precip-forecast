@@ -119,6 +119,9 @@ def build(out: Path, run: catalogue.Run, steps: list[int], ensemble_mode: str = 
         # Which code built this; pipeline/check.py uses it to notice undeployed changes.
         "build": {"commit": os.environ.get("GITHUB_SHA", "local")},
         "attribution": ATTRIBUTION,
+        # The layer the page opens on. Changed below to the lowest ensemble threshold when
+        # the probabilities were built (DECISIONS D25).
+        "default_layer": "tp_interval",
         "run": {
             "centre": "ECMWF", "model": "IFS", "stream": run.stream, "resolution_deg": abs(grid.dlon),
             "reference_utc": iso_utc(ref), "source_directory": run.directory + "/",
@@ -161,6 +164,7 @@ def build(out: Path, run: catalogue.Run, steps: list[int], ensemble_mode: str = 
             manifest["ensemble"] = {"status": "unavailable", "reason": repr(e)}
         else:
             manifest["layers"] += layers
+            manifest["default_layer"] = min(layers, key=lambda layer: layer["threshold_mm"])["id"]
             manifest["ensemble"] = summary
             print(f"ensemble layers built in {time.time() - t0:.0f}s: "
                   f"{summary['raster_bytes'] / 1e6:.1f} MB rasters, {summary['series_bytes'] / 1e6:.1f} MB series tiles")
