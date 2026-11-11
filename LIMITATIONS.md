@@ -45,8 +45,48 @@ Last updated 2026-11-11, after the ensemble layers went live
   hour without a login, which the development session exhausted once while
   polling a build.
 
-## Not done yet
-- No location search, no 24 h totals of the single forecast.
+## Known and not fixed
+Found in a reviewer pass on the live site at 375 × 812 on 2026-11-11 and left
+as they are, by decision. Numbers are measurements from that pass.
+
+- **"Chance" overstates what the probability layers are.** The first screen
+  calls a raw count of 50 model runs a chance; "not calibrated" appears only in
+  the panel after a place is picked.
+- **A third of the first screen is empty on a phone.** The map is 188 px tall
+  to keep the world's 2:1 shape; the space under the footer is blank until a
+  place is picked.
+- **No loading feedback.** Changing the time step took 0.5–1.7 s with nothing on
+  screen to show that anything was happening.
+- **The lightest legend class barely shows.** Its contrast against land is about
+  1.1 in both colour scales, and country borders disappear inside the darkest
+  class (contrast 1.1).
+- **Playing the rate map downloads about 29 MB** (84 rasters of roughly 350 KB)
+  with no warning on mobile data.
+- **Small tap targets.** Zoom buttons are 24 × 24 px, the slider track is 16 px
+  tall, the close button 32 px, and the rate slider moves one step per 4 px.
+- **A dry place shows an empty chart** with a note explaining bars that are not
+  there.
+- **Nothing is shareable.** Layer, time and place are not in the URL; a reload
+  loses them.
+- **IST for every viewer** (asked for; DECISIONS D16).
+- **Light theme only**, also on a device set to dark.
+- **Jargon in the panel**: "Source precision 0.98 mm (ECMWF packing step)",
+  "Grid index row 246, col 1029".
+- **The table of values scrolls inside a 260 px box**, which is awkward on a
+  phone.
+- No place names anywhere: a picked place is a pair of coordinates. No place
+  search (it would need an outside service).
+- No 24 h totals of the single forecast.
+
+Introduced by the fixes made after that pass:
+
+- Picking a place jumps the map to a view about 16° across. That is a sharp
+  change from the world view and there is no animation to follow.
+- Pressing Enter on the map picks the place at its centre, but nothing marks
+  the centre beforehand.
+- "Use my location" was tested with a simulated position and simulated refusals
+  only, never on a real device.
+- The "now" tag reflects the device clock when the page loaded.
 
 ## The ensemble probabilities
 - **They are raw counts of 50 model runs, not calibrated probabilities.** "40 %"

@@ -347,3 +347,36 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Cost**: the first thing a visitor sees is now a 24 h window rather than a
   3 h interval, and a probability rather than an amount. The selector above the
   legend says which, and the rate map is one tap away.
+
+## D26. The page opens on the time step that contains now
+- **Choice**: on load, show the interval or window in which the present moment
+  falls, and tag it "now". Before the forecast starts that is the first step;
+  if the run is so old that now is past its end, the last.
+- **Alternative**: open on the start of the run (the first version). A run is
+  7 to 20 hours old when it is viewed, so the first screen showed weather that
+  had already happened: the first 24 h window was 61 % over when reviewed.
+- **Why not "the next full window"**: the window in progress is the one people
+  mean by "today"; skipping it would hide the rest of today.
+- **Limits**: "now" is the visitor's device clock at page load. The tag does not
+  move if the page stays open across a boundary.
+
+## D27. Picking a place: a tap zooms in on the cell, plus "Use my location"
+- **Problem**: with the whole world on a phone a grid cell is 0.26 px wide. A
+  fingertip covers about 170 cells, the picked cell could not be seen, and
+  reaching a usable scale took 13 taps of "+".
+- **Choice**: (1) picking a cell zooms in, without animation, until cells are
+  6 px wide (a view about 16° across on a phone), so the place is visible and a
+  second tap can correct it; it never zooms out. (2) A ring of fixed screen size
+  marks the picked cell at every zoom. (3) "Use my location" picks the nearest
+  cell from the browser's geolocation. (4) "Whole world" zooms back out; zoom
+  buttons step a whole level.
+- **Alternative**: a place-name search. It needs a geocoding service, i.e. a
+  third party, which was ruled out. A built-in list of cities needs a vetted
+  coordinate table that I did not have and would not write from memory.
+  Opening the map already zoomed in on one region: the app is global.
+- **Privacy**: the position from "Use my location" is used in the browser to
+  find a grid cell and is not sent anywhere as coordinates. The request for that
+  cell's time-series tile does tell the web host which 8° × 8° block was asked
+  for, as any tap on the map does.
+- **Cost**: the first tap changes the view sharply, which can disorient; there is
+  still no place name, only coordinates.
