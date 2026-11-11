@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -115,6 +116,8 @@ def build(out: Path, run: catalogue.Run, steps: list[int], ensemble_mode: str = 
     manifest = {
         "schema": SCHEMA_VERSION,
         "generated_utc": iso_utc(datetime.now(timezone.utc)),
+        # Which code built this; pipeline/check.py uses it to notice undeployed changes.
+        "build": {"commit": os.environ.get("GITHUB_SHA", "local")},
         "attribution": ATTRIBUTION,
         "run": {
             "centre": "ECMWF", "model": "IFS", "stream": run.stream, "resolution_deg": abs(grid.dlon),
