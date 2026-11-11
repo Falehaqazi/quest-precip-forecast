@@ -116,9 +116,9 @@ def build(out: Path, run: catalogue.Run, steps: list[int], ensemble_mode: str = 
     manifest = {
         "schema": SCHEMA_VERSION,
         "generated_utc": iso_utc(datetime.now(timezone.utc)),
-        # Which code built this; pipeline/check.py uses it to notice undeployed changes.
+        # Which code built this, and what started the build.
         "build": {"commit": os.environ.get("GITHUB_SHA", "local"),
-                  # push, workflow_dispatch (the Run workflow button), schedule, or local
+                  # push, workflow_dispatch (the Run workflow button), or local
                   "trigger": os.environ.get("GITHUB_EVENT_NAME", "local")},
         "attribution": ATTRIBUTION,
         # The layer the page opens on. Changed below to the lowest ensemble threshold when

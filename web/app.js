@@ -472,11 +472,10 @@ function describeRun(manifest, layer) {
   $('run-line').textContent =
     `${manifest.run.centre} ${manifest.run.model} ${manifest.run.resolution_deg}° · run ${day} ${timeOnly(manifest.run.reference_utc)} UTC ` +
     `(${Math.round(ageH)} h ago) · forecast to +${manifest.run.last_step} h`;
-  // Updates are manual in practice (DECISIONS D29), so say when and how this page was built,
+  // Updates are manual (DECISIONS D29, D30), so say when this page was built,
   // and say so prominently once a newer run has probably been published.
   const built = `${dayTime(manifest.generated_utc, 'UTC')} UTC`;
-  const automatic = manifest.build && manifest.build.trigger === 'schedule';
-  $('refresh-line').textContent = `Last built ${built}, ${automatic ? 'by the automatic check' : 'by hand'}.`;
+  $('refresh-line').textContent = `Last built ${built}, by hand.`;
   if (newerRunLikely(manifest.run.reference_utc, Date.now())) {
     $('stale').textContent =
       `This page is behind. The forecast shown is from a model run ${Math.round(ageH)} h old and a newer one ` +
