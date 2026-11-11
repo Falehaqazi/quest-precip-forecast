@@ -25,11 +25,11 @@ Companion documents:
 
 ## Architecture
 
-There is no application server. A scheduled job turns ECMWF files into static
+There is no application server. A build job turns ECMWF files into static
 files; the browser does the rest.
 
 ```
- data.ecmwf.int                    GitHub Actions (hourly)                GitHub Pages
+ data.ecmwf.int                 GitHub Actions (run by hand)              GitHub Pages
 ┌──────────────────┐   byte      ┌──────────────────────────┐  deploy  ┌───────────────────┐
 │ oper: 1 forecast │   ranges    │ pipeline/  (Python)      │ artifact │ web/  static site │
 │ enfo: 50 members │ ──────────> │  fetch only `tp` fields  │ ───────> │  index.html, JS   │
@@ -139,27 +139,33 @@ meant different things before and after the forecast's 3 h → 6 h change (D14).
 
 ## How the refresh works
 
-- A GitHub Actions workflow (`.github/workflows/deploy.yml`) is scheduled every
-  15 minutes. Its first step asks whether ECMWF has a newer complete run than the one
-  on the site, whether the site was built from older code, or whether its
-  probabilities are missing. If none of those is true the run stops there.
-  Otherwise it runs the tests, builds the data and deploys.
-- A push to `main` always builds and deploys.
-- A run counts as complete only when the deterministic forecast, the ensemble
-  members and ECMWF's probability product are all present. If the ensemble
-  still fails, the deterministic forecast is published and the page says the
-  probabilities are missing.
-- If a build or deploy fails, the previous site stays up. The page always
-  shows the model run time and its age, and a banner once it is over 24 h old.
-- **The refresh never commits to the repository.** The workflow's token has
+**The site is updated by hand.** It does not keep itself current.
+
+- **To refresh it**: signed in to GitHub as the repository owner, open
+  [Actions → Build forecast and deploy](https://github.com/Falehaqazi/quest-precip-forecast/actions/workflows/deploy.yml),
+  press **Run workflow**, then **Run workflow** again. About three minutes later
+  the site shows ECMWF's newest complete run. A push to `main` does the same.
+- **What a build does**: runs the tests, picks the newest run for which the
+  deterministic forecast, the ensemble members and ECMWF's probability product
+  are all present, builds the data and deploys it. If the ensemble fails, the
+  deterministic forecast is published and the page says the probabilities are
+  missing. If the build or deploy fails, the previous site stays up.
+- **Why by hand**: an automatic check is configured in the workflow (every
+  15 minutes; it builds only when ECMWF has something newer than the site). In
+  this repository GitHub has started a scheduled run once in roughly 35
+  scheduled times over a day and a half. That one run built and deployed
+  correctly, so the mechanism works when GitHub runs it; it cannot be relied on.
+  No outside scheduler or access token is used, by choice.
+- **What the page shows**: always the model run time, its age, and when and how
+  the page was last built ("by hand" or "by the automatic check"). Once the run
+  shown is 21 hours old, by which time ECMWF has normally published the next
+  one, a banner says the page is behind. The footer says the page is updated
+  by hand.
+- **Nothing here commits to the repository.** The workflow's token has
   `contents: read` only; there is no commit, push or tag step; the site is
   published as a Pages deployment artifact, not to a branch. Every commit on
   `main` is a human commit. What changes without a commit is the Actions run
   list and the data on the live site.
-- **GitHub's scheduler is not punctual.** In this repository scheduled runs
-  have started hours late or not at all (LIMITATIONS.md has the record). To
-  refresh by hand: on GitHub open **Actions → Build forecast and deploy → Run
-  workflow → Run workflow**. A manual run always builds.
 
 ## Limits
 
@@ -173,7 +179,8 @@ The short version; LIMITATIONS.md is longer and blunter.
   map does not colour anything below 0.1 mm/h.
 - The rate map is one forecast. It shows day 15 as firmly as hour 3.
 - Times are UTC and IST for every viewer.
-- Freshness depends on GitHub starting the scheduled workflow.
+- The page is updated by hand, so it is only as fresh as its last rebuild. It
+  says when that was and warns when a newer forecast has probably come out.
 - Tested in one browser engine (Chromium) at phone and desktop sizes; not in
   Firefox or Safari, and not with real touch input.
 

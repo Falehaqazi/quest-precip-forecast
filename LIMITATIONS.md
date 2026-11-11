@@ -5,23 +5,24 @@ Last updated 2026-11-11, after the ensemble layers went live
 (https://falehaqazi.github.io/quest-precip-forecast/).
 
 ## Operations: what has and has not been seen to work
-- **Scheduled refresh depends on GitHub starting the workflow, which it does
-  late or not at all.** With the first schedule (08:05, 10:05, 20:05, 22:05
-  UTC) one of two evening attempts on 2026-11-10 ran, at 00:35 UTC, and the
-  08:05 attempt on 2026-11-11 had not started by 09:33. The schedule is now
-  hourly with a check that skips the build when nothing is new (DECISIONS D24).
-  That gives 24 chances a day instead of 4; it does not guarantee any of them.
-  **Record so far: one scheduled run has ever started** (2026-11-11 00:35 UTC,
-  under the old schedule). After the hourly schedule was pushed at 09:55 UTC
-  on 2026-11-11, none of the 10:17, 11:17, 12:17, 13:17 or 14:17 runs had
-  started by 14:23 UTC. The workflow is listed as active. I do not know why;
-  the hourly schedule and its skip check have therefore **never been seen
-  running on GitHub**, only tested locally. Until that changes, the site is
-  refreshed by pushes and by the manual "Run workflow" button.
-  At 15:05 UTC the schedule was changed to every 15 minutes (DECISIONS D28).
-  If that does not produce a scheduled run within a few hours, the agreed
-  fallback is to call the refresh manual, on the page and in the README.
-  The page always shows the run time and its age, and a banner after 24 h.
+- **The page does not keep itself up to date.** It is rebuilt when its owner
+  presses "Run workflow" on GitHub or pushes a commit. Left alone it goes
+  stale: the forecast shown gets older and, after 15 days, runs out entirely.
+  The page says when it was built and shows a banner once the run is 21 h old,
+  but nothing fixes it without a person.
+- **The automatic check exists and has almost never run.** GitHub started one
+  scheduled run (2026-11-11 00:35 UTC, hours after its scheduled time) out of
+  roughly 35 scheduled times across three schedules: four fixed times a day,
+  then hourly from 09:55 UTC, then every 15 minutes from 15:06 UTC. None had
+  started by 21:18 UTC on 2026-11-11. The workflow is listed as active and I do
+  not know why GitHub is not running it. That single run did build and deploy
+  correctly. The check that decides whether to build or skip has **never been
+  seen running on GitHub**; it has unit tests and was run by hand against the
+  live site.
+- **The "behind" banner is a guess about ECMWF's timing.** It appears when the
+  run shown is 21 h old because a newer run was complete after about 20 h on
+  the two days observed. If ECMWF is late the banner is early, and the page
+  cannot check.
 - **The refresh makes no commits.** It can only read the repository and deploy
   to Pages. After the commit history ends, the Actions run list and the data on
   the live site keep changing; the repository does not.

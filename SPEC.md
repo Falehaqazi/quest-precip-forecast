@@ -39,6 +39,10 @@ window, and the page states the model run it came from.
   2026-11-10 at Faleha's request; DECISIONS D16).
 - F6. Data refreshes automatically when a new run is published; the page never
   silently shows a stale run (age of run is displayed).
+  *Half met as of 2026-11-11. The second half holds: the page shows the run's
+  age, when it was last built, and a banner when it is behind. The first half
+  does not: GitHub has not been running the scheduled check, and the refresh
+  is manual (DECISIONS D29).*
 - F7. Colour legend with units. ECMWF attribution and CC BY 4.0 notice
   (required by the terms of use, see §5.6).
 

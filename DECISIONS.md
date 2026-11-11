@@ -396,3 +396,29 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   or delaying individual runs. It does nothing if GitHub is not scheduling this
   repository at all, which I cannot tell from outside.
 - **Unchanged**: `contents: read`, no commit or push step, Pages artifact deploy.
+
+## D29. Fallback taken: the refresh is manual, and the page says so
+- **What happened**: after the 15-minute schedule (D28) was deployed at 15:06 UTC
+  on 2026-11-11, no scheduled run had started by 21:18 UTC, about 25 scheduled
+  times later. With the five hourly times before it and the four fixed times
+  of the first schedule, GitHub has started one scheduled run out of roughly 35.
+  Meanwhile ECMWF's 12z run had been complete for over an hour and the site
+  still showed 00z.
+- **Choice (agreed in advance with Faleha)**: treat the refresh as manual. The
+  page says in its footer that it is updated by hand with the "Run workflow"
+  button; under the header it says when it was last built and whether by hand
+  or by the automatic check; the README leads with the manual steps.
+- **The schedule stays in the workflow.** It costs nothing, cannot commit, and
+  if GitHub does start running it the page gets fresher and says "by the
+  automatic check" for that build. The alternative, deleting it so that "by
+  hand" is true without exception, would guarantee a stale page whenever nobody
+  presses the button. Nothing on the page claims the automatic check works.
+- **The "behind" banner now appears at 21 h, not 24 h.** ECMWF runs every 12 h
+  and a run's files were complete about 8 h after its nominal time on both days
+  observed, so the next run is normally out when the one shown is 20 h old.
+  The old 24 h threshold left up to four hours of being behind with no warning,
+  and its text blamed an update job. The new text says the page is behind, that
+  a newer run has probably been published, that updates are by hand, and when
+  the page was last built. "Probably" because the page cannot ask ECMWF.
+- **Not done**: no outside scheduler, no personal token, no self-triggering
+  workflow (options B to D in D28), by Faleha's decision.
