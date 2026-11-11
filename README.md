@@ -20,7 +20,7 @@ not been checked against observations.
 Companion documents:
 
 - [SPEC.md](SPEC.md): what was to be built, what the data actually looks like, what "done" means
-- [DECISIONS.md](DECISIONS.md): each non-obvious choice, the alternative, and why (D1–D25)
+- [DECISIONS.md](DECISIONS.md): each non-obvious choice, the alternative, and why (D1–D30)
 - [LIMITATIONS.md](LIMITATIONS.md): what is wrong, approximate or untested
 
 ## Architecture
@@ -54,7 +54,6 @@ files; the browser does the rest.
 | `ensemble.py` | Fetching the 50 members, 24 h windows, self-check against ECMWF's own probabilities |
 | `encode.py`, `series.py` | Lossless PNG encoding; per-place tiles for the time series |
 | `run.py` | Builds everything for one model run and writes `manifest.json` last |
-| `check.py` | Decides whether a scheduled run has anything to build |
 
 **Data format**: each map is a PNG whose red and green channels hold a 16-bit
 integer (`value = scale × code`), so the browser has the real numbers and the
@@ -106,7 +105,7 @@ server or a decoded file. The checks that matter:
 2. **Tests on real ECMWF messages.** Three real `tp` messages and a real index
    file are in the repository, so the tests decode actual bytes rather than
    synthetic arrays.
-3. **Automated tests**: 90 in Python (`pytest`) and 21 in JavaScript
+3. **Automated tests**: 83 in Python (`pytest`) and 25 in JavaScript
    (`node --test`), run on every build before anything is published.
 
    | Area | What is tested |
@@ -118,7 +117,7 @@ server or a decoded file. The checks that matter:
    | Probability | No member, every member, the "at least" boundary, exactness of packed values, member order, bad input |
    | Encoding | PNG round trip, rounding error bound, clipping reported |
    | Series tiles | Tile values equal map values on real data |
-   | Refresh | When a scheduled run must build and when it may skip |
+   | Freshness | Which time step the page opens on; when it says it is behind |
 
 4. **Ensemble self-check, every run.** Each probability field is compared with
    ECMWF's own field for the same window and threshold; the result is written
@@ -139,33 +138,33 @@ meant different things before and after the forecast's 3 h → 6 h change (D14).
 
 ## How the refresh works
 
-**The site is updated by hand.** It does not keep itself current.
+**The site is updated by hand.** There is no automatic refresh of any kind.
 
 - **To refresh it**: signed in to GitHub as the repository owner, open
   [Actions → Build forecast and deploy](https://github.com/Falehaqazi/quest-precip-forecast/actions/workflows/deploy.yml),
   press **Run workflow**, then **Run workflow** again. About three minutes later
   the site shows ECMWF's newest complete run. A push to `main` does the same.
+  Those are the only two things that start a build.
 - **What a build does**: runs the tests, picks the newest run for which the
   deterministic forecast, the ensemble members and ECMWF's probability product
   are all present, builds the data and deploys it. If the ensemble fails, the
   deterministic forecast is published and the page says the probabilities are
   missing. If the build or deploy fails, the previous site stays up.
-- **Why by hand**: an automatic check is configured in the workflow (every
-  15 minutes; it builds only when ECMWF has something newer than the site). In
-  this repository GitHub has started a scheduled run once in roughly 35
-  scheduled times over a day and a half. That one run built and deployed
-  correctly, so the mechanism works when GitHub runs it; it cannot be relied on.
-  No outside scheduler or access token is used, by choice.
-- **What the page shows**: always the model run time, its age, and when and how
-  the page was last built ("by hand" or "by the automatic check"). Once the run
-  shown is 21 hours old, by which time ECMWF has normally published the next
-  one, a banner says the page is behind. The footer says the page is updated
-  by hand.
+- **What the page shows**: always the model run time, its age, and when the page
+  was last built. Once the run shown is 21 hours old, by which time ECMWF has
+  normally published the next one, a banner says the page is behind. The footer
+  says the page is updated by hand.
+- **Why there is no schedule**: one was tried in three forms (four times a day,
+  hourly, every 15 minutes). GitHub started a scheduled run once in roughly 35
+  scheduled times over a day and a half, so it was removed rather than left in
+  as a promise the site could not keep. An outside scheduler or an access token
+  would have fixed it and was ruled out by choice. DECISIONS D24 and D28–D30
+  have the record.
 - **Nothing here commits to the repository.** The workflow's token has
   `contents: read` only; there is no commit, push or tag step; the site is
   published as a Pages deployment artifact, not to a branch. Every commit on
-  `main` is a human commit. What changes without a commit is the Actions run
-  list and the data on the live site.
+  `main` is a human commit. A manual run adds an entry to the Actions run list
+  and changes the data on the live site, and nothing else.
 
 ## Limits
 

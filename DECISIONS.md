@@ -304,7 +304,7 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Cost**: the page can be up to about half an hour later than it could be.
   `--ensemble optional` still applies if something fails after the run is chosen.
 
-## D24. The refresh runs every hour and builds only when there is something new
+## D24. The refresh runs every hour and builds only when there is something new (removed, see D30)
 - **Choice**: the workflow is scheduled at minute 17 of every hour. Its first
   real step (`pipeline/check.py`) asks three things and stops the run unless one
   is true: ECMWF has a newer complete run (deterministic, ensemble members and
@@ -381,7 +381,7 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Cost**: the first tap changes the view sharply, which can disorient; there is
   still no place name, only coordinates.
 
-## D28. The schedule asks every 15 minutes; no token, no outside service
+## D28. The schedule asks every 15 minutes; no token, no outside service (removed, see D30)
 - **Situation**: five hours after the hourly schedule (D24) was pushed, no
   scheduled run had started; one had ever started in the repository.
 - **Options put to Faleha**: (A) ask GitHub more often; (B) have each run start
@@ -408,7 +408,7 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   page says in its footer that it is updated by hand with the "Run workflow"
   button; under the header it says when it was last built and whether by hand
   or by the automatic check; the README leads with the manual steps.
-- **The schedule stays in the workflow.** It costs nothing, cannot commit, and
+- **(Reversed in D30.)** **The schedule stays in the workflow.** It costs nothing, cannot commit, and
   if GitHub does start running it the page gets fresher and says "by the
   automatic check" for that build. The alternative, deleting it so that "by
   hand" is true without exception, would guarantee a stale page whenever nobody
@@ -422,3 +422,24 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   the page was last built. "Probably" because the page cannot ask ECMWF.
 - **Not done**: no outside scheduler, no personal token, no self-triggering
   workflow (options B to D in D28), by Faleha's decision.
+
+## D30. The schedule is removed; the refresh is manual without exception
+- **Choice (Faleha)**: delete the scheduled trigger so that "updated by hand" is
+  exactly true. The workflow now starts only from the "Run workflow" button or a
+  push to `main`. The "page is behind" banner stays.
+- **Removed with it**: the build-or-skip check (`pipeline/check.py`, its tests
+  and the workflow step). It existed only to make frequent scheduled runs cheap;
+  with no schedule every run is asked for by a person and always builds. The
+  code is in the history at commit `cd46c15` if a schedule is ever wanted again.
+  The page's "by the automatic check" wording and the footer's mention of an
+  automatic check went too.
+- **Alternative**: keep the schedule as a best effort (D29). Rejected because
+  the page would then describe something that happens about once in 35 tries,
+  and a reader cannot tell a rare automatic build from a manual one.
+- **Why not make it reliable instead**: that needs an outside scheduler or a
+  personal access token (D28, options C and D), both ruled out.
+- **Consequence**: the site is exactly as fresh as its last manual rebuild.
+  Left alone it shows the "behind" banner from 21 h after the run it was built
+  from, and after 15 days it has no forecast left to show.
+- **Feature set frozen** at this point by Faleha. Later commits, if any, are
+  corrections only.

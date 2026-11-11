@@ -5,30 +5,25 @@ Last updated 2026-11-11, after the ensemble layers went live
 (https://falehaqazi.github.io/quest-precip-forecast/).
 
 ## Operations: what has and has not been seen to work
-- **The page does not keep itself up to date.** It is rebuilt when its owner
-  presses "Run workflow" on GitHub or pushes a commit. Left alone it goes
-  stale: the forecast shown gets older and, after 15 days, runs out entirely.
-  The page says when it was built and shows a banner once the run is 21 h old,
-  but nothing fixes it without a person.
-- **The automatic check exists and has almost never run.** GitHub started one
-  scheduled run (2026-11-11 00:35 UTC, hours after its scheduled time) out of
-  roughly 35 scheduled times across three schedules: four fixed times a day,
-  then hourly from 09:55 UTC, then every 15 minutes from 15:06 UTC. None had
-  started by 21:18 UTC on 2026-11-11. The workflow is listed as active and I do
-  not know why GitHub is not running it. That single run did build and deploy
-  correctly. The check that decides whether to build or skip has **never been
-  seen running on GitHub**; it has unit tests and was run by hand against the
-  live site.
+- **The page does not keep itself up to date, by design.** There is no
+  automatic refresh. It is rebuilt only when its owner presses "Run workflow"
+  on GitHub or pushes a commit. Left alone it goes stale: the forecast shown
+  gets older and, after 15 days, runs out entirely. The page says when it was
+  built and shows a banner once the run is 21 h old, but nothing fixes it
+  without a person.
+- **Why there is no schedule.** One was built and removed (DECISIONS D30).
+  GitHub started one scheduled run (2026-11-11 00:35 UTC, hours after its
+  scheduled time) out of roughly 35 scheduled times across three schedules:
+  four fixed times a day, then hourly, then every 15 minutes for six hours.
+  The workflow was listed as active throughout and I do not know why GitHub did
+  not run it. That single run built and deployed correctly.
 - **The "behind" banner is a guess about ECMWF's timing.** It appears when the
   run shown is 21 h old because a newer run was complete after about 20 h on
   the two days observed. If ECMWF is late the banner is early, and the page
   cannot check.
-- **The refresh makes no commits.** It can only read the repository and deploy
-  to Pages. After the commit history ends, the Actions run list and the data on
-  the live site keep changing; the repository does not.
-- If the hourly check itself is wrong (says "nothing to build" when there is),
-  the site goes stale silently apart from the age shown on the page. The check
-  has unit tests and was run once by hand against the live site.
+- **Builds make no commits.** The workflow can only read the repository and
+  deploy to Pages. A manual run adds an entry to the Actions run list and
+  changes the data on the live site; the repository does not change.
 - **One deploy timed out.** The push of the ensemble work (run #7) built in
   2 min 51 s and then the Pages deploy step gave up after 10 minutes
   ("Timeout reached, aborting!"). GitHub's API and the Pages site were also
@@ -39,7 +34,7 @@ Last updated 2026-11-11, after the ensemble layers went live
 - **Build time with the ensemble**: 2 min 37 s to 2 min 51 s for the whole
   workflow on GitHub's runner (two runs). Locally it took 4 to 6 minutes.
 - The pipeline has now processed one 00z run (locally and in CI) and one 12z
-  run (in CI, unattended). The path "ensemble missing or failed its self-check,
+  run (in CI). The path "ensemble missing or failed its self-check,
   publish without it" has run only in unit tests, and the page's "probabilities
   could not be built" note has never been seen in a browser.
 - The workflow's action versions (`checkout@v4`, `setup-python@v5`,
@@ -160,12 +155,14 @@ Introduced by the fixes made after that pass:
   colours after +144 h are systematically weaker for the same weather. The
   mean rate is also not the rain rate at any moment: 6 mm in 3 h shows as
   2 mm/h whether it fell steadily or in ten minutes.
-- **Only 00z/12z runs.** The page can lag the newest model run by 12 h plus
-  ECMWF's ~7 h publication delay. The "stale" banner only appears after 24 h.
+- **Only 00z/12z runs.** Even rebuilt the moment a run is published, the page
+  is 8 h behind the model's start time, and up to 20 h just before the next
+  one. In practice it is as old as its last manual rebuild.
 
 ## Things assumed, not verified
 - The time column in the ECMWF directory listing is UTC (it is not labelled).
-  The cron times in the workflow rest on this and on two days of listings.
+  The 21 h threshold of the "behind" banner rests on this and on two days of
+  listings.
 - A run is "complete" if its last step's `.index` exists. If ECMWF publishes
   non-atomically the pipeline may hit a missing step; it then fails without
   publishing, leaving the previous run on the site.
@@ -180,8 +177,8 @@ Introduced by the fixes made after that pass:
   (Windows, eccodes 2.50.0; exit without traceback). I did not investigate the
   cause; decoding now happens on the main thread only and downloads stay
   threaded. If someone "optimises" this back, it will break.
-- No retry logic beyond three attempts per file; no alerting when a scheduled
-  build fails (GitHub's default e-mail only).
+- No retry logic beyond three attempts per file. A failed build is visible
+  only in the Actions list (and GitHub's default e-mail to the owner).
 - Only the latest run is kept. There is no archive and no way to compare runs.
 
 ## The app

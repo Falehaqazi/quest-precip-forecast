@@ -39,10 +39,11 @@ window, and the page states the model run it came from.
   2026-11-10 at Faleha's request; DECISIONS D16).
 - F6. Data refreshes automatically when a new run is published; the page never
   silently shows a stale run (age of run is displayed).
-  *Half met as of 2026-11-11. The second half holds: the page shows the run's
-  age, when it was last built, and a banner when it is behind. The first half
-  does not: GitHub has not been running the scheduled check, and the refresh
-  is manual (DECISIONS D29).*
+  *Half met; final state 2026-11-11. The second half holds: the page shows the
+  run's age, when it was last built, and a banner when it is behind. The first
+  half does not: there is no automatic refresh. A scheduled one was built,
+  GitHub did not run it, and it was removed; the site is rebuilt by hand with
+  the "Run workflow" button (DECISIONS D29, D30).*
 - F7. Colour legend with units. ECMWF attribution and CC BY 4.0 notice
   (required by the terms of use, see §5.6).
 
@@ -96,6 +97,8 @@ window, and the page states the model run it came from.
 5. `DECISIONS.md` and `LIMITATIONS.md` are current. Commit history is small,
    readable steps.
 6. The refresh runs unattended at least twice in a row.
+   *Not met and no longer attempted: it ran unattended once, and the refresh
+   is now manual (DECISIONS D30).*
 
 ## 5. Data source — verified facts
 
@@ -227,8 +230,9 @@ control; how ECMWF computes its `ep` fields (grid, member count).
 
 Static first, API later.
 
-- **Pipeline**: Python + `eccodes` (ships libaec) + numpy, run on a schedule in
-  GitHub Actions. Tests with pytest.
+- **Pipeline**: Python + `eccodes` (ships libaec) + numpy, run in GitHub
+  Actions. Tests with pytest. *Planned to run on a schedule; in the end it is
+  started by hand or by a push (DECISIONS D30).*
 - **Serving**: static files (frontend + processed data) on GitHub Pages. No
   application server, so nothing to keep alive or cold-start.
 - **Frontend**: plain JS with a web map library, canvas raster overlay, small
@@ -245,7 +249,7 @@ all deploy CLIs are absent; the repo has no remote yet.
 | Question | Answer |
 |---|---|
 | Audience / default view | Global map, reviewer-first |
-| Architecture | Static site + scheduled pipeline first; API later |
+| Architecture | Static site + scheduled pipeline first; API later (the schedule was later removed, D30) |
 | Local Python | Install Python 3.12 via winget |
 | Forecast scope | Deterministic IFS 0.25°, 00z/12z for v1. Ensemble probability of exceedance is the first addition after the slice is live and tested; format and UI designed for it now (E1) |
 
