@@ -117,7 +117,9 @@ def build(out: Path, run: catalogue.Run, steps: list[int], ensemble_mode: str = 
         "schema": SCHEMA_VERSION,
         "generated_utc": iso_utc(datetime.now(timezone.utc)),
         # Which code built this; pipeline/check.py uses it to notice undeployed changes.
-        "build": {"commit": os.environ.get("GITHUB_SHA", "local")},
+        "build": {"commit": os.environ.get("GITHUB_SHA", "local"),
+                  # push, workflow_dispatch (the Run workflow button), schedule, or local
+                  "trigger": os.environ.get("GITHUB_EVENT_NAME", "local")},
         "attribution": ATTRIBUTION,
         # The layer the page opens on. Changed below to the lowest ensemble threshold when
         # the probabilities were built (DECISIONS D25).

@@ -3,12 +3,11 @@ import {
   seriesAddress, extractSeries,
 } from './grid.js?v=__BUILD__';
 import {
-  SECOND_ZONE, rangeUtc, rangeSecond, shortDay, dayTime, timeOnly, indexAtTime, containsTime,
+  SECOND_ZONE, rangeUtc, rangeSecond, shortDay, dayTime, timeOnly, indexAtTime, containsTime, newerRunLikely,
 } from './time.js?v=__BUILD__';
 import { render as renderChartSvg } from './chart.js?v=__BUILD__';
 
 const DATA_DIR = 'data/';
-const STALE_AFTER_HOURS = 24;   // a fresh 00z/12z run is 7-20 h old when viewed (see LIMITATIONS)
 const PLAY_INTERVAL_MS = 650;
 const CACHE_SIZE = 16;          // decoded intervals kept in memory (~2 MB each)
 const TILE_CACHE_SIZE = 8;      // decoded series tiles kept in memory (~0.35 MB each)
@@ -473,8 +472,15 @@ function describeRun(manifest, layer) {
   $('run-line').textContent =
     `${manifest.run.centre} ${manifest.run.model} ${manifest.run.resolution_deg}° · run ${day} ${timeOnly(manifest.run.reference_utc)} UTC ` +
     `(${Math.round(ageH)} h ago) · forecast to +${manifest.run.last_step} h`;
-  if (ageH > STALE_AFTER_HOURS) {
-    $('stale').textContent = `This forecast run is ${Math.round(ageH)} h old. A newer run should exist; the update job may have failed.`;
+  // Updates are manual in practice (DECISIONS D29), so say when and how this page was built,
+  // and say so prominently once a newer run has probably been published.
+  const built = `${dayTime(manifest.generated_utc, 'UTC')} UTC`;
+  const automatic = manifest.build && manifest.build.trigger === 'schedule';
+  $('refresh-line').textContent = `Last built ${built}, ${automatic ? 'by the automatic check' : 'by hand'}.`;
+  if (newerRunLikely(manifest.run.reference_utc, Date.now())) {
+    $('stale').textContent =
+      `This page is behind. The forecast shown is from a model run ${Math.round(ageH)} h old and a newer one ` +
+      `has probably been published. The page is updated by hand and was last built ${built}.`;
     $('stale').hidden = false;
   }
   $('attribution').textContent = manifest.attribution.text + ' ';

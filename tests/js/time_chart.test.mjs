@@ -123,3 +123,19 @@ test('containsTime is start-inclusive and end-exclusive, so exactly one interval
   assert.equal(day.filter((iv) => containsTime(iv, t(-1))).length, 0);
   assert.equal(day.filter((iv) => containsTime(iv, t(48))).length, 0);
 });
+
+// ---- when the page warns that it is behind ----
+import { newerRunLikely, NEWER_RUN_LIKELY_AFTER_HOURS } from '../../web/time.js';
+
+test('the page says it is behind once the next run has probably been published', () => {
+  const run = '2026-11-11T00:00:00Z';
+  const at = (h) => Date.parse(run) + h * 3600000;
+  assert.equal(NEWER_RUN_LIKELY_AFTER_HOURS, 21);
+  assert.equal(newerRunLikely(run, at(8)), false);      // just published
+  assert.equal(newerRunLikely(run, at(20)), false);     // next run is only just appearing
+  assert.equal(newerRunLikely(run, at(20.99)), false);
+  assert.equal(newerRunLikely(run, at(21)), true);
+  assert.equal(newerRunLikely(run, at(21.3)), true);    // the case seen on 2026-11-11 at 21:18 UTC
+  assert.equal(newerRunLikely(run, at(24 * 30)), true); // a month-old page
+  assert.equal(newerRunLikely(run, at(-1)), false);     // device clock behind the run time
+});

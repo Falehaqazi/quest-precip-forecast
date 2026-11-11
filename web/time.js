@@ -51,3 +51,15 @@ export function indexAtTime(intervals, ms) {
 export function containsTime(iv, ms) {
   return Date.parse(iv.start_utc) <= ms && ms < Date.parse(iv.end_utc);
 }
+
+/**
+ * ECMWF runs the model every 12 h, and on the two days observed a run's files (including the
+ * ensemble) were complete about 8 h after its nominal time. So once the run on the page is
+ * 20 h old the next one has normally been out for a while; 21 h leaves a margin.
+ */
+export const NEWER_RUN_LIKELY_AFTER_HOURS = 21;
+
+/** True when a newer complete run than `referenceIso` has probably been published. */
+export function newerRunLikely(referenceIso, nowMs) {
+  return nowMs - Date.parse(referenceIso) >= NEWER_RUN_LIKELY_AFTER_HOURS * 3600000;
+}
