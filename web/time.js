@@ -37,3 +37,17 @@ export function dayTime(iso, zoneId) {
 
 /** "05:30" */
 export const timeOnly = (iso, zoneId = 'UTC') => formatters(zoneId).time.format(new Date(iso));
+
+/**
+ * Index of the interval that contains the instant `ms`: the first whose end is after it.
+ * Before the forecast starts this is the first interval; after it ends, the last.
+ */
+export function indexAtTime(intervals, ms) {
+  for (let i = 0; i < intervals.length; i++) if (ms < Date.parse(intervals[i].end_utc)) return i;
+  return intervals.length - 1;
+}
+
+/** True if the instant `ms` lies inside the interval (start inclusive, end exclusive). */
+export function containsTime(iv, ms) {
+  return Date.parse(iv.start_utc) <= ms && ms < Date.parse(iv.end_utc);
+}

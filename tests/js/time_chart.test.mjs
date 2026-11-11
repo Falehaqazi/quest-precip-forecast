@@ -87,3 +87,39 @@ test('utcDayStarts: midnights in UTC for 00z and 12z runs', () => {
   assert.deepEqual(b[0], { hours: 12, iso: '2026-11-11T00:00:00.000Z' });
   assert.equal(b[14].hours, 348);
 });
+
+// ---- which interval the page opens on ----
+import { indexAtTime, containsTime } from '../../web/time.js';
+
+const iso = (h) => new Date(Date.UTC(2026, 10, 11, 0) + h * 3600000).toISOString().replace('.000Z', 'Z');
+const mk = (edges) => edges.slice(1).map((e, i) => ({ start_utc: iso(edges[i]), end_utc: iso(e) }));
+const t = (h) => Date.UTC(2026, 10, 11, 0) + h * 3600000;
+
+test('the page opens on the interval that contains now', () => {
+  const day = mk([0, 24, 48, 72]);                 // three 24 h windows from 11 Nov 00 UTC
+  assert.equal(indexAtTime(day, t(14.5)), 0);      // 14:30 on the first day
+  assert.equal(indexAtTime(day, t(24)), 1);        // exactly at a boundary: the window that starts there
+  assert.equal(indexAtTime(day, t(47.99)), 1);
+  assert.equal(indexAtTime(day, t(50)), 2);
+  const mixed = mk([0, 3, 6, 9, 12, 18, 24]);      // 3 h steps then 6 h steps
+  assert.equal(indexAtTime(mixed, t(7)), 2);
+  assert.equal(indexAtTime(mixed, t(12)), 4);
+  assert.equal(indexAtTime(mixed, t(17.9)), 4);
+});
+
+test('before the forecast starts it opens on the first interval, after it ends on the last', () => {
+  const day = mk([0, 24, 48, 72]);
+  assert.equal(indexAtTime(day, t(-5)), 0);
+  assert.equal(indexAtTime(day, t(72)), 2);
+  assert.equal(indexAtTime(day, t(500)), 2);       // a very stale run still opens on something
+});
+
+test('containsTime is start-inclusive and end-exclusive, so exactly one interval is "now"', () => {
+  const day = mk([0, 24, 48]);
+  assert.equal(containsTime(day[0], t(0)), true);
+  assert.equal(containsTime(day[0], t(24)), false);
+  assert.equal(containsTime(day[1], t(24)), true);
+  assert.equal(day.filter((iv) => containsTime(iv, t(24))).length, 1);
+  assert.equal(day.filter((iv) => containsTime(iv, t(-1))).length, 0);
+  assert.equal(day.filter((iv) => containsTime(iv, t(48))).length, 0);
+});

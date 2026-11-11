@@ -2,7 +2,9 @@ import {
   indexOf, centerOf, cellBounds, rgbaToCodes, decodeValue, displayValue, buildLut,
   seriesAddress, extractSeries,
 } from './grid.js?v=__BUILD__';
-import { SECOND_ZONE, rangeUtc, rangeSecond, shortDay, dayTime, timeOnly } from './time.js?v=__BUILD__';
+import {
+  SECOND_ZONE, rangeUtc, rangeSecond, shortDay, dayTime, timeOnly, indexAtTime, containsTime,
+} from './time.js?v=__BUILD__';
 import { render as renderChartSvg } from './chart.js?v=__BUILD__';
 
 const DATA_DIR = 'data/';
@@ -360,6 +362,7 @@ async function show(i) {
   $('slider').value = i;
   $('slider').setAttribute('aria-valuetext', rangeUtc(iv));
   $('interval-utc').textContent = rangeUtc(iv);
+  $('now-tag').hidden = !containsTime(iv, Date.now());
   $('interval-local').textContent = rangeSecond(iv);
   $('lead').textContent = `+${iv.start_step} h to +${iv.end_step} h`;
   $('legend-title').textContent = legendTitle(iv);
@@ -452,9 +455,7 @@ async function setLayer(id) {
   const layer = state.layers.find((l) => l.id === id);
   if (!layer || layer === state.layer) return;
   setPlaying(false);
-  const at = Date.parse(state.layer.intervals[state.index].start_utc);
-  let index = layer.intervals.findIndex((iv) => Date.parse(iv.end_utc) > at);
-  if (index < 0) index = layer.intervals.length - 1;
+  const index = indexAtTime(layer.intervals, Date.parse(state.layer.intervals[state.index].start_utc));
   Object.assign(state, { layer, codes: null, series: null, hoverIndex: null });
   $('layer').value = id;
   buildLegend(layer);
@@ -507,7 +508,9 @@ async function main() {
     $('play').addEventListener('click', () => setPlaying(!state.playing));
     $('readout-close').addEventListener('click', deselect);
     new ResizeObserver(() => { if (state.selected && state.series) renderChart(); }).observe($('chart'));
-    await show(0);
+    // Open on the interval that contains the present moment, not on the start of the run,
+    // which is already 7 to 20 hours in the past when a run is published and viewed.
+    await show(indexAtTime(layer.intervals, Date.now()));
     // For debugging and for checking values against the pipeline from the console.
     window.__app = state;
     window.__map = map;
