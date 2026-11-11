@@ -2,15 +2,18 @@ name: Build forecast and deploy
 
 on:
   push:
-    branches: [master, main]
+    branches: [main]
   workflow_dispatch:
   schedule:
-    # ECMWF published the 00z run at ~07:34 UTC and the 12z run at ~19:34 UTC (observed
-    # 2026-11-09/10). First attempt half an hour later, one retry two hours after that.
-    # Re-running on the same run is harmless: it rebuilds identical files.
-    - cron: "5 8,10 * * *"
-    - cron: "5 20,22 * * *"
+    # Every hour. GitHub starts scheduled workflows late or skips them (seen 2026-11-10/11:
+    # one of two evening runs, at 00:35 UTC instead of 20:05 or 22:05), so two fixed times
+    # a day were not enough. Most hourly runs stop at the "Is there anything to build?" step.
+    # Minute 17 avoids the top of the hour, when the scheduler is busiest.
+    - cron: "17 * * * *"
 
+# This workflow cannot write to the repository. It reads the code, builds the site in the
+# runner, and publishes it to GitHub Pages as a deployment artifact. It makes no commits,
+# pushes, tags or branches: there is no step that does, and the token could not if there were.
 permissions:
   contents: read
   pages: write
@@ -24,36 +27,54 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    outputs:
+      build: ${{ steps.check.outputs.build }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
+      - run: pip install -r requirements.txt
+      - name: Is there anything to build?
+        id: check
+        # Scheduled runs build only if ECMWF has a newer complete run than the site shows, the
+        # site was built from other code, or its probabilities are missing. Pushes always build.
+        run: |
+          owner=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          python -m pipeline.check \
+            --live "https://${owner}.github.io/${GITHUB_REPOSITORY#*/}/data/manifest.json" \
+            --commit "$GITHUB_SHA" --event "$GITHUB_EVENT_NAME"
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.build == 'true'
         with:
           node-version: "22"
-      - run: pip install -r requirements.txt
       - name: Tests (pipeline)
+        if: steps.check.outputs.build == 'true'
         run: python -m pytest -q
       - name: Tests (browser grid code)
+        if: steps.check.outputs.build == 'true'
         run: node --test tests/js/*.test.mjs
       - name: Build data from the newest complete ECMWF run
+        if: steps.check.outputs.build == 'true'
         # --ensemble optional: if the ensemble files are late or fail their self-check, the
         # deterministic forecast is still published and the page says the probabilities are missing.
         run: python -m pipeline.run --out web/data --ensemble optional
       - name: Stamp script and style URLs with the commit
+        if: steps.check.outputs.build == 'true'
         # Browsers and the Pages CDN cache app.js / grid.js / style.css separately. Without
         # this, a visitor can get a new app.js with an old grid.js and a blank page.
         run: |
           sed -i "s/__BUILD__/${GITHUB_SHA::12}/g" web/index.html web/app.js
           ! grep -n "__BUILD__" web/index.html web/app.js
       - uses: actions/upload-pages-artifact@v3
+        if: steps.check.outputs.build == 'true'
         with:
           path: web
 
   deploy:
     needs: build
+    if: needs.build.outputs.build == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

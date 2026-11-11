@@ -85,7 +85,7 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Why**: that version killed the process with no traceback on Windows. Decoding
   85 fields takes seconds, so nothing is lost. Full run: ~43 s locally.
 
-## D11. Scheduled builds at 08:05/10:05 and 20:05/22:05 UTC
+## D11. Scheduled builds at 08:05/10:05 and 20:05/22:05 UTC (superseded by D24)
 - **Choice**: two attempts per run, shortly after the observed publication time.
 - **Alternative**: poll every 30 min; or trigger on ECMWF's side (not possible).
 - **Why**: publication was seen at ~07:34 and ~19:34 UTC. A rebuild of the same
@@ -303,3 +303,32 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   A build in that gap would have replaced a full forecast with a partial one.
 - **Cost**: the page can be up to about half an hour later than it could be.
   `--ensemble optional` still applies if something fails after the run is chosen.
+
+## D24. The refresh runs every hour and builds only when there is something new
+- **Choice**: the workflow is scheduled at minute 17 of every hour. Its first
+  real step (`pipeline/check.py`) asks three things and stops the run unless one
+  is true: ECMWF has a newer complete run (deterministic, ensemble members and
+  ECMWF's probability product all present) than the one named in the live
+  `manifest.json`; the live site was built from a different commit than the
+  code now on `main`; the live site has no ensemble probabilities. Pushes and
+  manual runs always build. The manifest now records the commit it was built
+  from so the second question can be answered.
+- **Alternative**: keep four fixed times a day (D11). Rejected on evidence: of
+  two evening attempts one ran, 2.5–4.5 h late, and the next morning's first
+  attempt had not started 1.5 h after its time. An outside scheduler calling
+  `workflow_dispatch` would be more punctual but needs a token and another
+  service to look after.
+- **Why hourly with a skip**: 24 chances a day instead of 4, without 24
+  downloads of 430 MB from ECMWF. A run that skips takes well under a minute
+  and touches ECMWF with a handful of HEAD requests.
+- **The refresh never commits.** The workflow's token has `contents: read`
+  only; there is no commit, push or tag step; the site is published as a Pages
+  deployment artifact, not to a branch (there is no `gh-pages` branch). After
+  the first unattended run every commit on `main` was still authored and
+  committed by Faleha. What does change without a commit: the Actions run
+  history, and the data on the live site.
+- **Side effect**: any commit, even to a `.md` file, makes the next build
+  happen (on push, or at the next scheduled run if the push build was skipped
+  or failed), because the site would otherwise be from older code.
+- **Still true**: GitHub may start an hourly run late or drop it. Hourly makes
+  a long gap unlikely; it does not make one impossible.

@@ -20,6 +20,9 @@ ECMWF data.ecmwf.int ──(HTTP range, tp only)──> pipeline/ ──> web/da
                                         GitHub Actions (cron) ─────┴──> GitHub Pages ──> web/ (Leaflet, no build step)
 ```
 
+The scheduled workflow only reads the repository and deploys to Pages. It never
+commits, pushes or tags (`permissions: contents: read`).
+
 `pipeline/` fetches the `tp` field of every step of the newest complete 00z/12z
 run, decodes it with ecCodes, converts m → mm, differences consecutive steps
 into per-interval amounts and writes one lossless PNG per interval. `web/` reads
