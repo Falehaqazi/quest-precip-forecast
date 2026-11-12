@@ -1,28 +1,39 @@
 # Precipitation forecast from ECMWF Open Data
 
-**Live: https://falehaqazi.github.io/quest-precip-forecast/**
-
 A web map of forecast precipitation for the next 15 days, built from the public
 forecast files of the European Centre for Medium-Range Weather Forecasts
-(ECMWF). It shows two things, both on the model's own 0.25° grid:
+(ECMWF) and drawn on the model's own 0.25° grid. It has two views: the mean
+precipitation rate (mm/h) in each 3- or 6-hour interval of ECMWF's control
+forecast, and the share of ECMWF's 50 perturbed ensemble forecasts that reach
+5, 10, 25 or 50 mm in a 24-hour window. Tapping a place gives its 15-day
+series, with times in UTC and IST, and every number carries its unit, its time
+window and the model run it came from.
 
-- **Share of ensemble members reaching 5, 10, 25 or 50 mm in 24 h**: how many of
-  ECMWF's 50 ensemble forecasts reach that amount in a 24-hour window. It is a
-  count of model runs, not a calibrated chance of rain.
-- **Forecast rate**: the mean precipitation rate (mm/h) in each 3- or 6-hour
-  interval of the single high-resolution forecast.
+**Live: https://falehaqazi.github.io/quest-precip-forecast/**
 
-Tap any grid cell for its full 15-day series, with times in UTC and IST. Every
-number carries its unit, its time window and the model run it came from.
+## The four limits that matter most
 
-This is raw model output shown as it is. It is not a warning service and has
-not been checked against observations.
+1. **It is updated by hand and can be out of date.** Nothing refreshes it
+   automatically. The page shows which model run it holds and when it was last
+   built, and warns once that run is 21 hours old.
+2. **It is raw model output that has not been checked against any observation.**
+   No bias correction, no downscaling, no comparison with rain gauges or radar.
+   Each value is the model's value at a grid point, and points are roughly
+   28 km apart. It is not a warning service.
+3. **The ensemble shares are counts of model runs, not calibrated probabilities.**
+   "40 %" means 20 of 50 forecasts reach the amount; nobody here has checked how
+   often it then rains. 0 % means no member, not "impossible".
+4. **The rate map is a single forecast, drawn as firmly for day 15 as for hour 3.**
+   Its largest values (hundreds of millimetres in 6 hours, a week or more ahead)
+   are exactly what ECMWF's forecast contains, and the ensemble mostly does not
+   support them.
 
-Companion documents:
+Everything else that is wrong, approximate or untested is in
+[LIMITATIONS.md](LIMITATIONS.md).
 
-- [SPEC.md](SPEC.md): what was to be built, what the data actually looks like, what "done" means
-- [DECISIONS.md](DECISIONS.md): each non-obvious choice, the alternative, and why (D1–D30)
-- [LIMITATIONS.md](LIMITATIONS.md): what is wrong, approximate or untested
+Other documents: [SPEC.md](SPEC.md) (what was to be built, what the data
+actually looks like, what "done" means) and [DECISIONS.md](DECISIONS.md) (each
+non-obvious choice, the alternative, and why; D1–D35).
 
 ## Architecture
 
@@ -197,15 +208,11 @@ meant different things before and after the forecast's 3 h → 6 h change (D14).
   `main` is a human commit. A manual run adds an entry to the Actions run list
   and changes the data on the live site, and nothing else.
 
-## Limits
+## Other limits
 
-The short version; LIMITATIONS.md is longer and blunter.
+The four at the top of this file matter most. A few more that change how the
+page should be read; LIMITATIONS.md has the full list.
 
-- Raw model output: no bias correction, no downscaling, no check against rain
-  gauges or radar. A value is the model's value at a grid point; points are
-  roughly 28 km apart, and it is not an average over the area in between.
-- The member shares are counts of 50 model runs, not calibrated probabilities.
-  0 % means "no member", 100 % means "every member".
 - ECMWF's ensemble has 51 members and the shares count 50 of them. The 51st is
   the control forecast, which ECMWF publishes separately as the `oper`
   forecast (since IFS Cycle 50r1, May 2026); it is the forecast the rate map
@@ -215,10 +222,7 @@ The short version; LIMITATIONS.md is longer and blunter.
   share by at most one member. DECISIONS D33.
 - No layer for light rain: the lowest threshold is 5 mm in 24 h, and the rate
   map does not colour anything below 0.1 mm/h.
-- The rate map is one forecast. It shows day 15 as firmly as hour 3.
 - Times are UTC and IST for every viewer.
-- The page is updated by hand, so it is only as fresh as its last rebuild. It
-  says when that was and warns when a newer forecast has probably come out.
 - Tested in one browser engine (Chromium) at phone and desktop sizes; not in
   Firefox or Safari, and not with real touch input.
 

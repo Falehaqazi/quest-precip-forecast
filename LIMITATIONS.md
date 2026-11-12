@@ -1,7 +1,7 @@
 # LIMITATIONS
 
 What is wrong, approximate or untested. Kept blunt on purpose.
-Last updated 2026-11-11, after the ensemble layers went live
+Last updated 2026-11-12, after the final corrections
 (https://falehaqazi.github.io/quest-precip-forecast/).
 
 ## Operations: what has and has not been seen to work
