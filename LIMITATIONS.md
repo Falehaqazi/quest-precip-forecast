@@ -91,9 +91,13 @@ Introduced by the fixes made after that pass:
   I have not measured that and cite no source for it.
 - **0 % is not "impossible" and 100 % is not "certain".** They mean no member and
   every member. The smallest non-zero value is 2 %.
-- **50 members, no control.** ECMWF's headers say the ensemble has 51 forecasts;
-  the open-data files hold the 50 perturbed ones. I do not know why, and did not
-  substitute the `oper` forecast for the missing one.
+- **50 of the ensemble's 51 members are counted.** The 51st, the control
+  forecast, is the `oper` forecast shown on the rate map; ECMWF publishes it
+  there and not with the other members (DECISIONS D33). This pipeline reads only
+  the 50 perturbed members, so every share is out of 50. Counting the control
+  too would move a value by at most one member in 51 (under 2 points). It was
+  left out because the feature set was frozen when this was established, not
+  because it cannot be done.
 - **Agreement with ECMWF's own probabilities is statistical, not cell by cell.**
   Averaged over the globe the two differ by well under one percentage point at
   every threshold, but individual cells differ by tens of points along sharp
@@ -108,9 +112,10 @@ Introduced by the fixes made after that pass:
 - **Windows are fixed to the run time** (00–00 UTC or 12–12 UTC), so the same
   storm can be split across two windows in one run and sit inside one in the
   next. Consecutive runs are not directly comparable.
-- **The probability and rate layers are different forecasts.** The rate map is
-  the single `oper` run; it is not one of the 50 members, so a wet patch on the
-  rate map can sit in a low-probability area and both are correct displays.
+- **The rate map and the member shares come from different members of one
+  ensemble.** The rate map is the control forecast, which is not among the 50
+  counted. So a wet patch on the rate map can sit where few of the 50 reach the
+  threshold, and both are correct displays.
 - The self-check needs ECMWF's `ep` files, which appear about 20 minutes after
   the member files. If a build runs in between, the probabilities are
   published unchecked and the manifest says so.

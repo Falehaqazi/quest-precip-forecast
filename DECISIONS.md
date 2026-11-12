@@ -257,7 +257,8 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Choice**: P = (members with window total ≥ threshold) / 50. The comparison
   is "at least" (≥), matching ECMWF's parameter names. The stored number is the
   member count (0–50), so the page can say "17 of 50 members". No smoothing in
-  space, no calibration, no control member (it is not in the open-data files).
+  space, no calibration, no control member (it is not in the open-data `enfo`
+  files; where it is, and that it could be counted, was established later: D33).
 - **Alternative**: use ECMWF's `ep` product as is (≈70 MB, no computation).
   Rejected because the calculation was asked for and because then nothing on
   the page would be traceable to member forecasts; instead `ep` is used as the
@@ -501,3 +502,32 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Cost of clamping**: the intervals for a cell add up to slightly more than
   the model's 15-day total: at most 0.43 mm in any cell, 0.023 mm on average,
   0.06 % over the globe. The chart's "Total over 15 days" carries that excess.
+
+## D33. Why 50 members and not 51: the control is the `oper` forecast
+- **Question**: each ensemble header says the ensemble has 51 forecasts, the
+  `enfo` files hold 50, and until now this was recorded as "I do not know why".
+- **Answer, from ECMWF**: with IFS Cycle 50r1, implemented on 12 May 2026,
+  ECMWF stopped running a separate high-resolution forecast and an ensemble
+  control; it runs one, calls it the ENS control, and disseminates it with
+  `stream=oper, type=fc` instead of `stream=enfo, type=cf`
+  ([Implementation of IFS Cycle 50r1](https://confluence.ecmwf.int/spaces/FCST/pages/567162191/Implementation+of+IFS+Cycle+50r1)). The
+  [open data page](https://www.ecmwf.int/en/forecasts/datasets/open-data) lists the medium-range products the same way: the
+  control under `oper`/`fc`, the 50 perturbed members under `enfo`/`pf`.
+- **Checked on data** (run 2026-11-12 00z, mean sea level pressure at +72 h, all
+  1,038,240 cells): ECMWF's published ensemble mean equals the mean of the 50
+  perturbed members plus the `oper` field. Regressing (ECMWF mean − mean of the
+  50) on (`oper` − mean of the 50) gives a slope of 0.01959; one part in 51 is
+  0.01961, and a mean over the 50 alone would give 0. The remaining difference
+  is 1.17 Pa rms, which is what rounding to the 4 Pa packing step leaves
+  (1.15 Pa); against the mean of the 50 alone it is 1.65 Pa.
+- **So**: the control is not missing from open data. It is the forecast the
+  rate layer shows. This pipeline counts the 50 perturbed members only because
+  it reads only the `enfo` files, which was a consequence of not knowing this,
+  not a choice.
+- **Decision now**: leave the count at 50 and say so. Adding the control would
+  change every share by at most one member (under 2 points), the encoding scale
+  (100/51), the "N of 50" texts, the 2 % legend step and the self-check, and
+  the feature set is frozen. It is a small, well-defined change if wanted.
+- **Corrected with this entry**: LIMITATIONS and SPEC §5.8 said the control was
+  absent for unknown reasons, and LIMITATIONS said the rate map was not part of
+  the ensemble. Both were wrong.

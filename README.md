@@ -74,7 +74,8 @@ or other third-party service at run time.
   IFS model, 0.25°, 00 and 12 UTC runs, read from `https://data.ecmwf.int/forecasts/`.
 - **Fields used**: total precipitation `tp` (paramId 228; metres, accumulated
   since the start of the forecast) from the deterministic forecast (`oper`) and
-  from each of the 50 perturbed ensemble members (`enfo`). ECMWF's own
+  from each of the 50 perturbed ensemble members (`enfo`). The deterministic
+  forecast is also the ensemble's control member. ECMWF's own
   probability product is read only to check ours.
 - **Licence**: ECMWF publishes this data under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) with additional
@@ -183,8 +184,15 @@ The short version; LIMITATIONS.md is longer and blunter.
 
 - Raw model output: no bias correction, no downscaling, no check against rain
   gauges or radar. A value is an average over a grid cell of roughly 28 km.
-- The probabilities are counts of 50 model runs, not calibrated probabilities.
+- The member shares are counts of 50 model runs, not calibrated probabilities.
   0 % means "no member", 100 % means "every member".
+- ECMWF's ensemble has 51 members and the shares count 50 of them. The 51st is
+  the control forecast, which ECMWF publishes separately as the `oper`
+  forecast (since IFS Cycle 50r1, May 2026); it is the forecast the rate map
+  shows. Checked against ECMWF's documentation and against its published
+  ensemble mean, which matches the 50 members plus `oper`. The pipeline reads
+  only the 50 perturbed members; counting the control as well would change a
+  share by at most one member. DECISIONS D33.
 - No layer for light rain: the lowest threshold is 5 mm in 24 h, and the rate
   map does not colour anything below 0.1 mm/h.
 - The rate map is one forecast. It shows day 15 as firmly as hour 3.

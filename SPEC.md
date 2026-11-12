@@ -201,15 +201,15 @@ Read from directory listings, index files and decoded GRIB headers.
 | Member files | `…/ifs/0p25/enfo/YYYYMMDDHH0000-{step}h-enfo-ef.grib2` + `.index`, one per step |
 | Size | **3.9–4.2 GB per step file**, 85 steps (≈350 GB per run). Index file ≈2 MB, 8,850 lines |
 | Steps | Same as `oper`: 3-hourly to 144 h, 6-hourly to 360 h (00z/12z); 06z/18z stop at 144 h |
-| Members | **50**, all type `pf` (perturbed), numbered 1–50. **No control member (`cf`) is in the files**, although each header says `numberOfForecastsInEnsemble = 51` |
+| Members | **50**, all type `pf` (perturbed), numbered 1–50. Each header says `numberOfForecastsInEnsemble = 51`. The 51st is the control forecast, which ECMWF has published since IFS Cycle 50r1 (12 May 2026) as stream `oper`, type `fc`, not as `enfo`/`cf` (established 2026-11-12, DECISIONS D33) |
 | Variables | The same 43 surface parameters per member as `oper`, including `tp` and `tprate` (plus pressure levels) |
 | `tp` per member | Units m, accumulated from step 0, same 1440 × 721 grid, CCSDS 12-bit. One message is 0.26–0.65 MB; all 50 at one step are 16–25 MB |
 | Packing step | Chosen per member and step. At +24 h: 0.06–0.24 mm. At +360 h: 0.24–0.98 mm |
 | ECMWF's own probabilities | `…-240h-enfo-ep.grib2` (609 MB) and `…-360h-enfo-ep.grib2` (215 MB): ensemble mean, spread and probabilities. For precipitation: `tpg1, tpg5, tpg10, tpg20, tpg25, tpg50, tpg100` = "total precipitation of at least N mm", units %, for 24 h windows starting every 12 h (0–24 … 336–360). Values are smooth (3,201 distinct values in one field), not multiples of 1/50 or 1/51 |
 | Published | `ef` files 07:40, `ep` files 08:01 for the 00z run (listing time, assumed UTC) |
 
-Not verified: why the control is absent and whether the `oper` forecast is that
-control; how ECMWF computes its `ep` fields (grid, member count).
+Not verified: how ECMWF computes its `ep` fields (grid, member count). Why the
+control is not among the `enfo` files was settled later: see D33.
 
 ## 6. Processing (what the pipeline must do)
 

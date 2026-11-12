@@ -3,7 +3,9 @@
 What is on the server (verified 2026-11-10, run 20261110 00z):
   .../ifs/0p25/enfo/YYYYMMDDHH0000-{step}h-enfo-ef.grib2   ~4 GB per step, all variables
   one `tp` message per member, type "pf", members numbered 1..50, same grid as `oper`.
-  No control member ("cf") is in these files, although the headers say the ensemble has 51.
+  The 51st member, the control forecast, is not in these files: since IFS Cycle 50r1
+  (12 May 2026) ECMWF publishes it as stream "oper", type "fc" - the forecast the rate layer
+  shows. It is not counted here (DECISIONS D33).
 
 Only `tp` at the ends of each 24 h window is fetched (byte ranges), about 20-25 MB per step.
 """
@@ -153,7 +155,8 @@ def build(out: Path, session, run: catalogue.Run, last_step: int, grid, cache: P
 
     summary = {
         "status": "ok", "members": m, "member_numbers": f"{member_ids[0]}-{member_ids[-1]}",
-        "member_type": "perturbed forecasts (pf); the control forecast is not in the open-data enfo files",
+        "member_type": "the 50 perturbed forecasts (enfo, type pf). The ensemble's 51st member, the control "
+                       "forecast, is published as stream oper, type fc (it is the rate layer) and is not counted",
         "source_directory": ens.directory + "/", "window_hours": WINDOW_HOURS, "thresholds_mm": THRESHOLDS_MM,
         "method": "share of members whose window total is >= threshold; no smoothing, no calibration",
     }
