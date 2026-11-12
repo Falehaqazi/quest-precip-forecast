@@ -48,9 +48,6 @@ Last updated 2026-11-11, after the ensemble layers went live
 Found in a reviewer pass on the live site at 375 × 812 on 2026-11-11 and left
 as they are, by decision. Numbers are measurements from that pass.
 
-- **"Chance" overstates what the probability layers are.** The first screen
-  calls a raw count of 50 model runs a chance; "not calibrated" appears only in
-  the panel after a place is picked.
 - **A third of the first screen is empty on a phone.** The map is 188 px tall
   to keep the world's 2:1 shape; the space under the footer is blank until a
   place is picked.
@@ -106,8 +103,8 @@ Introduced by the fixes made after that pass:
   data cannot resolve it (DECISIONS D20). At 5 mm the same effect remains at up
   to about 0.3 points on day 15.
 - **Cell averages.** "At least 25 mm" is for the mean over a ~28 km cell. A
-  gauge inside the cell can see far more; these maps understate the chance of
-  local extremes.
+  gauge inside the cell can see far more, so these maps understate local
+  extremes.
 - **Windows are fixed to the run time** (00–00 UTC or 12–12 UTC), so the same
   storm can be split across two windows in one run and sit inside one in the
   next. Consecutive runs are not directly comparable.

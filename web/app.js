@@ -367,12 +367,12 @@ function renderChart() {
   const days = (ivs[ivs.length - 1].end_step - ivs[0].start_step) / 24;
   if (prob) {
     $('chart-summary').textContent = total > 0
-      ? `Highest chance: ${formatDisplay(amounts[peak], ivs[peak])} (${formatAmount(amounts[peak], ivs[peak])}), ${rangeUtc(ivs[peak])}.`
+      ? `Highest share: ${formatDisplay(amounts[peak], ivs[peak])} (${formatAmount(amounts[peak], ivs[peak])}), ${rangeUtc(ivs[peak])}.`
       : `No member reaches ${layer.threshold_mm} mm in any 24 h window over ${days} days.`;
     $('chart-note').textContent =
-      `Each bar is one 24 h window. The chance is the share of the ${layer.members} ensemble members that reach ` +
+      `Each bar is one 24 h window: the share of the ${layer.members} ensemble members that reach ` +
       `${layer.threshold_mm} mm, so it moves in steps of ${+(100 / layer.members).toFixed(1)} %. ` +
-      'Tap a bar to show that window on the map.';
+      'It is a count of model runs, not a calibrated probability. Tap a bar to show that window on the map.';
     return;
   }
   $('chart-summary').textContent = total > 0
@@ -497,8 +497,8 @@ function buildLayerPicker(manifest) {
   }
   if (prob.length) {
     const group = document.createElement('optgroup');
-    group.label = `Chance, from ${prob[0].members} ensemble members`;
-    for (const l of prob) group.append(new Option(l.title, l.id));
+    group.label = `Counted from ${prob[0].members} ensemble members`;
+    for (const l of prob) group.append(new Option(l.short_title || l.title, l.id));
     select.append(group);
     $('layer-pick').hidden = false;
     select.addEventListener('change', () => setLayer(select.value).catch(fail));

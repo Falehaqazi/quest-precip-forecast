@@ -191,7 +191,11 @@ def build(out: Path, session, run: catalogue.Run, last_step: int, grid, cache: P
             })
         layers.append({
             "id": f"poe24_{t}", "kind": "probability", "group": "ensemble",
-            "title": f"Chance of at least {t} mm in 24 h",
+            # "Share of members", not "chance": it is a count of model runs, not a calibrated
+            # probability (DECISIONS D31).
+            "title": f"Share of ensemble members reaching {t} mm in 24 h",
+            # for the layer picker, where the full title does not fit a phone-width control
+            "short_title": f"Share of members reaching {t} mm in 24 h",
             "description": f"Share of the {m} ensemble members in which total precipitation over the 24 h "
                            f"window is at least {t} mm. Derived from ECMWF parameter tp (paramId 228) of each "
                            "perturbed member. Raw ensemble frequency: not calibrated.",

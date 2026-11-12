@@ -6,8 +6,9 @@ A web map of forecast precipitation for the next 15 days, built from the public
 forecast files of the European Centre for Medium-Range Weather Forecasts
 (ECMWF). It shows two things, both on the model's own 0.25° grid:
 
-- **Chance of a wet day**: the share of ECMWF's 50 ensemble forecasts in which at
-  least 5, 10, 25 or 50 mm falls in a 24-hour window.
+- **Share of ensemble members reaching 5, 10, 25 or 50 mm in 24 h**: how many of
+  ECMWF's 50 ensemble forecasts reach that amount in a 24-hour window. It is a
+  count of model runs, not a calibrated chance of rain.
 - **Forecast rate**: the mean precipitation rate (mm/h) in each 3- or 6-hour
   interval of the single high-resolution forecast.
 

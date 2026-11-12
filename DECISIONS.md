@@ -333,7 +333,7 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Still true**: GitHub may start an hourly run late or drop it. Hourly makes
   a long gap unlikely; it does not make one impossible.
 
-## D25. The page opens on "chance of at least 5 mm in 24 h"
+## D25. The page opens on "chance of at least 5 mm in 24 h" (label renamed in D31)
 - **Choice**: the manifest names the opening layer (`default_layer`); the
   pipeline sets it to the lowest ensemble threshold when the probabilities were
   built, and to the rate layer otherwise. The frontend just follows it.
@@ -443,3 +443,19 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   from, and after 15 days it has no forecast left to show.
 - **Feature set frozen** at this point by Faleha. Later commits, if any, are
   corrections only.
+
+## D31. The ensemble layers are called "share of ensemble members", not "chance"
+- **Choice**: every label that said "Chance of at least N mm in 24 h" now says
+  "Share of ensemble members reaching N mm in 24 h" (layer title, chart title,
+  README), "Highest share" in the chart summary, and the chart note adds "It is
+  a count of model runs, not a calibrated probability." The layer picker uses
+  the shorter "Share of members reaching N mm in 24 h" because the full title is
+  318 px wide at 14 px and the control has 303 px on a 375 px phone.
+- **Alternative**: keep "chance" and rely on the caveat in the panel (the first
+  version). LIMITATIONS already said that wording overstated the numbers: they
+  are how many of 50 model runs reach an amount, and nobody here has checked
+  how often it then rains.
+- **Unchanged**: the numbers, the percent unit, "N of 50 members" beside every
+  value, and the internal layer ids (`poe24_N`) and `kind: probability` in the
+  manifest, which no reader sees. Earlier entries in this file keep the old
+  wording because they record what was decided at the time.

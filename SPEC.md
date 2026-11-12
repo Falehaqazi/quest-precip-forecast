@@ -58,7 +58,7 @@ window, and the page states the model run it came from.
     come from the manifest, not from code that assumes mm);
   - the pipeline's fetch/decode/grid code takes stream and parameter as
     arguments rather than hard-coding `oper`/`tp`.
-  *Built 2026-11-10 as four layers: chance of at least 5, 10, 25 and 50 mm in
+  *Built 2026-11-10 as four layers: share of ensemble members reaching 5, 10, 25 and 50 mm in
   24 h, from the 50 perturbed members (§5.8, DECISIONS D19–D21). It differs
   from the sketch above in two ways: the windows are 24 h, not the 3 h / 6 h
   intervals, and the comparison is "at least X", not "more than X".*
