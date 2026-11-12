@@ -42,7 +42,7 @@ ATTRIBUTION = {
     "text": "Based on data and products of the European Centre for Medium-Range Weather "
             "Forecasts (ECMWF). © ECMWF, published under CC BY 4.0. The data has been "
             "modified: precipitation was de-accumulated into per-interval amounts, "
-            "converted from m to mm and rounded to 0.05 mm; ensemble probabilities were "
+            "converted from m to mm and rounded to 0.05 mm; the ensemble shares were "
             "computed by counting member forecasts.",
     "licence_url": "https://creativecommons.org/licenses/by/4.0/",
     "source_url": "https://www.ecmwf.int/en/forecasts/datasets/open-data",

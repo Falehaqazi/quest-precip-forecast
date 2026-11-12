@@ -94,7 +94,7 @@ or other third-party service at run time.
   is based on data and products of ECMWF. **The data has been modified**:
   accumulations were differenced into intervals and 24 h windows, converted from
   m to mm, rounded to 0.05 mm, and ensemble members were counted into
-  probabilities. ECMWF does not endorse this app.
+  shares. ECMWF does not endorse this app.
 - **Other material**: country outlines from Natural Earth (public domain);
   Leaflet (BSD-2-Clause) and topojson-client (ISC), vendored in `web/vendor/`.
 - The test fixtures in `tests/fixtures/` are unmodified ECMWF messages under the
