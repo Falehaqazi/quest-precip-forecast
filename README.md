@@ -97,13 +97,23 @@ designed: file layout, steps, units, grid, packing, ensemble contents.
 Nothing about the data was taken from memory; each fact was read from the
 server or a decoded file. The checks that matter:
 
-1. **Cross-check against Open-Meteo.** Open-Meteo processes the same ECMWF files
-   independently. For three points and the first two intervals of the
-   2026-11-10 00z run, this pipeline's values match it to its 0.1 mm rounding
-   (near Wellington: 4.24 and 7.78 mm here, 4.2 and 7.8 mm there). That confirms
-   units, de-accumulation, grid indexing and timing together. It is an
-   independent calculation on the same data, not independent data. The recorded
-   values are a test (`tests/test_real_data.py`, `tests/fixtures/README.md`).
+1. **Cross-check against Open-Meteo, and what it is worth.** Open-Meteo is a
+   separate service that processes the same ECMWF files with its own code. At
+   three grid points, for the first six hours of the 2026-11-10 00z run, this
+   pipeline's interval amounts equal Open-Meteo's to its 0.1 mm rounding. Only
+   one of the three points had rain (near Wellington: 4.24 and 7.78 mm here,
+   4.2 and 7.8 mm there); the other two were dry in both.
+   - *What that confirms*: at those points and times, the unit conversion
+     (m to mm), the de-accumulation, the grid indexing and the timing are right.
+     A wrong unit, a shifted grid or an off-by-one step would each have shown.
+   - *What it does not confirm*: that the forecast is right. Open-Meteo starts
+     from the same ECMWF data, so this is an independent calculation, not
+     independent data, and no observation is involved. It says nothing about
+     other places, later lead times (including the 6-hourly part of the
+     forecast), other runs, or the ensemble shares.
+   The values were recorded once and are kept as a test
+   (`tests/test_real_data.py`, `tests/fixtures/README.md`); the test does not
+   contact Open-Meteo again.
 2. **Tests on real ECMWF messages.** Three real `tp` messages and a real index
    file are in the repository, so the tests decode actual bytes rather than
    synthetic arrays.

@@ -180,9 +180,12 @@ Introduced by the fixes made after that pass:
   non-atomically the pipeline may hit a missing step; it then fails without
   publishing, leaving the previous run on the site.
 - The check against Open-Meteo is against a service that itself derives from
-  the same ECMWF files and rounds to 0.1 mm. It independently confirms units,
-  de-accumulation, grid indexing and timing, but it is not independent *data*.
-  Only three points and the first 6 h were compared.
+  the same ECMWF files and rounds to 0.1 mm. It confirms units, de-accumulation,
+  grid indexing and timing at the points compared, but it is not independent
+  *data* and says nothing about whether the forecast is right. Only three
+  points and the first 6 h of one run were compared, and only one of the three
+  points had rain. Nothing beyond that was checked this way: no other places,
+  no later lead times, no ensemble shares.
 - ecCodes is trusted as the reference decoder.
 
 ## The pipeline
