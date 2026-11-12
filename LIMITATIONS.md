@@ -106,9 +106,9 @@ Introduced by the fixes made after that pass:
 - **No layer for light rain.** "At least 1 mm" was dropped because the packed
   data cannot resolve it (DECISIONS D20). At 5 mm the same effect remains at up
   to about 0.3 points on day 15.
-- **Cell averages.** "At least 25 mm" is for the mean over a ~28 km cell. A
-  gauge inside the cell can see far more, so these maps understate local
-  extremes.
+- **Grid-point values, 28 km apart.** "Reaching 25 mm" is about the model's
+  value at one grid point. A gauge a few kilometres away can see far more or
+  far less, so these maps say little about local extremes.
 - **Windows are fixed to the run time** (00–00 UTC or 12–12 UTC), so the same
   storm can be split across two windows in one run and sit inside one in the
   next. Consecutive runs are not directly comparable.
@@ -127,8 +127,13 @@ Introduced by the fixes made after that pass:
 
 ## The data
 - **This is raw model output.** No bias correction, no downscaling, no
-  verification against gauges or radar. A 0.25° cell is roughly 28 km × 28 km at
-  the equator; a value is a cell average, not the rain at a point.
+  verification against gauges or radar. Grid points are 0.25° apart, roughly
+  28 km at the equator. **A value is the model's value at that grid point, not
+  an average over the 28 km square drawn around it** (earlier versions of this
+  file and of the page said "cell average"; that was an assumption and it was
+  wrong, DECISIONS D35). The map paints each value over a whole square, which
+  makes it look like an area value. What area the model's own number stands
+  for I did not establish.
 - **One deterministic forecast.** No uncertainty is shown. Beyond a few days a
   single run's precipitation placement is not reliable; the map does not tell
   you that, and it shows day 15 with the same confidence as hour 3.

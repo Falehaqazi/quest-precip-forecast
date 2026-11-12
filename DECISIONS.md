@@ -559,3 +559,28 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   take this".
 - **Not possible**: comparison with observations. All four dates were in the
   future when this was written.
+
+## D35. Correction: values are grid-point samples, not averages over a 28 km cell
+- **What was claimed**: the page footer, the README and LIMITATIONS said each
+  value is an average over a grid cell of roughly 28 km. I had assumed that and
+  never checked it.
+- **What the data shows** (run 2026-11-12 00z, `tp` at +36, +174 and +252 h):
+  every second 0.25° grid point is also a point of ECMWF's 0.1° product. At
+  all 259,920 shared points, at all three steps, the 0.25° value is identical
+  to the 0.1° value at that point (largest difference 0). An average over the
+  0.25° square would differ wherever rain varies: against the mean of the 3 × 3
+  surrounding 0.1° values the 0.25° value is identical at only about 10 % of
+  wet points and differs by up to 148 mm. So the 0.25° product is the same
+  field sampled more coarsely.
+- **Correction made**: the three statements now say "the model's value at a
+  grid point; points are roughly 28 km apart". No number or picture changes.
+- **Why it matters**: sharp maxima are not smoothed. The 361 mm value in D34
+  sits among 0.1° neighbours averaging 280 mm; as a true 28 km average it would
+  be lower. Reading the map as area rainfall overstates peaks and understates
+  how patchy the field is between points.
+- **Still not established**: what area the model's value at a point represents
+  (the model's own grid spacing and how ECMWF interpolates to these grids). I
+  did not look that up and state nothing about it.
+- **Left as is**: the map still draws each value as a 0.25° square, and the
+  panel still says "Grid cell centred on …". That is how the value is drawn,
+  not what it measures.

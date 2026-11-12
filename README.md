@@ -202,7 +202,8 @@ meant different things before and after the forecast's 3 h → 6 h change (D14).
 The short version; LIMITATIONS.md is longer and blunter.
 
 - Raw model output: no bias correction, no downscaling, no check against rain
-  gauges or radar. A value is an average over a grid cell of roughly 28 km.
+  gauges or radar. A value is the model's value at a grid point; points are
+  roughly 28 km apart, and it is not an average over the area in between.
 - The member shares are counts of 50 model runs, not calibrated probabilities.
   0 % means "no member", 100 % means "every member".
 - ECMWF's ensemble has 51 members and the shares count 50 of them. The 51st is
