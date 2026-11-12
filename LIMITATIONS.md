@@ -141,11 +141,22 @@ Introduced by the fixes made after that pass:
   amount of a single packing step, are transparent. That hides about 11 % of
   the run's total precipitation (unweighted sum) spread thinly over a third of
   the globe. "No colour" means "less than 0.1 mm/h", not "dry".
-- **Unexplained negatives.** 3,533 cells have `tp` one packing step *lower* at
-  +288 h than at +282 h although both fields use the same step, and 866 cells
-  likewise at +12 h. Accumulated precipitation should not decrease. I do not
-  know the cause (interpolation to the 0.25° grid is a guess, not a finding).
-  Negatives are clamped to 0 and counted per interval in the manifest.
+- **Accumulated precipitation sometimes decreases, and for some of it the cause
+  is unknown.** Checked on raw values of the 2026-11-12 00z run: 263,375
+  cell-intervals (0.30 %) in 5 of 84 intervals. Three of those intervals are
+  where the packing step doubles; there every decrease is exactly half the
+  coarser step (0.03 to 0.12 mm), which rounding explains. The other two
+  (+39–42 h: 2,123 cells; +246–252 h: 3,072 cells) have the same packing step in
+  both fields and every decrease is exactly one step (0.06 and 0.24 mm).
+  ECMWF's separate 0.1° product decreases in the same two intervals, in the
+  same share of cells, and in none of the neighbouring ones, so this comes from
+  ECMWF's fields, not from this pipeline or the 0.25° grid. **Why ECMWF's
+  fields do it, I could not find out.** One guess (a hidden change of packing
+  step upstream) was tested against the 0.1° headers and not supported.
+  The pipeline sets every negative difference to 0 and writes the count and the
+  largest one per interval into the manifest. Because of that, the intervals
+  for a cell can add up to at most 0.43 mm more than the model's own 15-day
+  total (0.06 % over the globe). DECISIONS D32.
 - **Interval length changes at 144 h** from 3 h to 6 h. The map colours the
   mean rate (mm/h), so a colour means the same rate before and after the
   switch. But a 6 h mean flattens short bursts more than a 3 h mean, so peak

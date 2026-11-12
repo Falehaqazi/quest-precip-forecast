@@ -459,3 +459,45 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
   value, and the internal layer ids (`poe24_N`) and `kind: probability` in the
   manifest, which no reader sees. Earlier entries in this file keep the old
   wording because they record what was decided at the time.
+
+## D32. Decreasing accumulations: set to zero, counted, and traced as far as possible
+- **Finding** (raw `tp` of the deterministic run 2026-11-12 00z, all 84
+  intervals, 1,038,240 cells each):
+
+  | Interval | Packing step, before → after | Cells decreasing | Size of every decrease |
+  |---|---|---|---|
+  | +3–6 h | 0.031 → 0.061 mm | 22,479 (2.2 %) | 0.031 mm = half the coarser step |
+  | +39–42 h | 0.061 → 0.061 mm | 2,123 (0.20 %) | 0.061 mm = one step |
+  | +48–51 h | 0.061 → 0.122 mm | 105,317 (10.1 %) | 0.061 mm = half the coarser step |
+  | +69–72 h | 0.122 → 0.244 mm | 130,384 (12.6 %) | 0.122 mm = half the coarser step |
+  | +246–252 h | 0.244 → 0.244 mm | 3,072 (0.30 %) | 0.244 mm = one step |
+
+  Nothing decreases in the other 79 intervals. In total 263,375 cell-intervals,
+  0.30 % of all; the largest decrease is 0.244 mm. The 2026-11-10 00z run had
+  the same two kinds (for the second kind: 866 cells at +9–12 h and 3,533 at
+  +282–288 h).
+- **First kind, explained**: where the packing step doubles, a value that was
+  rounded up on the fine lattice can be rounded down on the coarse one. The
+  result is always exactly one fine step lower, as observed.
+- **Second kind, traced but not explained**: with the same step in both fields
+  rounding cannot lower a value that did not really go down. These cells are
+  spread over the whole globe (over 600 different latitude rows), each exactly
+  one step lower. ECMWF's 0.1° product for the same run decreases in the same
+  two intervals (0.217 % and 0.308 % of its cells) and in none of the four
+  neighbouring intervals checked. So the decrease is already in what ECMWF
+  publishes at both resolutions; it is not made by this pipeline or by the
+  0.25° interpolation. I guessed that a finer packing upstream changes its step
+  there; the 0.1° headers show no step change in those intervals, so that guess
+  is not supported. The cause inside ECMWF's processing is unknown to me.
+- **What the pipeline does** (unchanged, now tested on real data): every
+  negative difference becomes 0; the count and the most negative value are
+  written per interval to `manifest.json` (`negative_count`, `most_negative`).
+  The pipeline's counts for this run equal the independent analysis above cell
+  for cell. Ensemble window totals are clamped the same way; at 5 mm and above
+  it cannot change a count.
+- **Alternative**: move the deficit into the neighbouring interval so the
+  intervals still sum to the model's total; or show negative rain. The first
+  invents a redistribution, the second is physically meaningless.
+- **Cost of clamping**: the intervals for a cell add up to slightly more than
+  the model's 15-day total: at most 0.43 mm in any cell, 0.023 mm on average,
+  0.06 % over the globe. The chart's "Total over 15 days" carries that excess.

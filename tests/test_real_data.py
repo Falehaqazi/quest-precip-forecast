@@ -99,3 +99,26 @@ def test_index_lookup_and_message_check():
         find_field(entries, param="does-not-exist")
     with pytest.raises(LookupError):
         find_field(entries, levtype="sfc")      # ambiguous: many surface fields
+
+
+def test_decreasing_accumulations_in_real_data_are_clamped_and_counted(tp):
+    """Accumulated precipitation goes DOWN at some cells between two real ECMWF fields.
+
+    Between steps 3 and 6 of this run the packing step doubles (2^-15 m to 2^-14 m). A value
+    rounded up on the fine lattice can be rounded down on the coarser one, so the difference is
+    minus one fine step, i.e. minus half a coarse step, and never anything else (DECISIONS D32).
+    """
+    raw = metres_to_mm(tp[6].values) - metres_to_mm(tp[3].values)
+    fine_step_mm = 1000.0 * tp[3].quantum
+    assert 1000.0 * tp[6].quantum == 2 * fine_step_mm          # the packing step doubles here
+    negative = raw < 0
+    assert negative.sum() == 25056                              # 2.4 % of the grid in this run
+    np.testing.assert_allclose(raw[negative], -fine_step_mm)    # every one is exactly one fine step
+    interval = deaccumulate({s: metres_to_mm(f.values) for s, f in tp.items()})[1]
+    assert (interval.start_step, interval.end_step) == (3, 6)
+    assert interval.values.min() == 0.0                         # clamped, never shown as negative rain
+    assert (interval.values[negative] == 0.0).all()
+    assert interval.negative_count == 25056                     # and reported, not hidden
+    assert interval.most_negative == pytest.approx(-fine_step_mm)
+    # clamping changes nothing where the accumulation did not decrease
+    np.testing.assert_array_equal(interval.values[~negative], raw[~negative])

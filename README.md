@@ -106,7 +106,7 @@ server or a decoded file. The checks that matter:
 2. **Tests on real ECMWF messages.** Three real `tp` messages and a real index
    file are in the repository, so the tests decode actual bytes rather than
    synthetic arrays.
-3. **Automated tests**: 83 in Python (`pytest`) and 25 in JavaScript
+3. **Automated tests**: 84 in Python (`pytest`) and 25 in JavaScript
    (`node --test`), run on every build before anything is published.
 
    | Area | What is tested |
@@ -131,6 +131,16 @@ server or a decoded file. The checks that matter:
 6. **Chart against map.** The page compares the chart's value with the map's
    value for the selected cell on every time step and prints a warning if they
    differ. They never have.
+
+7. **Accumulated totals that go down.** `tp` is accumulated since the start of
+   the forecast and should never decrease, but in the raw data it does at
+   0.30 % of cell-intervals (run 2026-11-12 00z, in 5 of 84 intervals, by at
+   most 0.244 mm). Most of it is rounding where ECMWF's packing step doubles.
+   The rest, about 5,000 cells in two intervals, is also present in ECMWF's
+   separate 0.1° product at the same steps, so it comes from ECMWF's fields;
+   why, I could not find out. The pipeline sets each negative difference to
+   zero and records how many there were; its counts match an independent
+   analysis exactly. Details in DECISIONS D32.
 
 Things the checks found and changed: a "1 mm" probability layer was built and
 dropped because the source data's packing cannot resolve it (D20); faint
