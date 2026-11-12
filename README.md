@@ -153,6 +153,15 @@ server or a decoded file. The checks that matter:
    zero and records how many there were; its counts match an independent
    analysis exactly. Details in DECISIONS D32.
 
+8. **The largest values.** The biggest amounts on the map (361, 240, 232 and
+   217 mm in 6 h in the 2026-11-12 00z run, all 7 to 12 days ahead) are exactly
+   what ECMWF's forecast contains, because Open-Meteo and ECMWF's separate
+   0.1° product give the same numbers at the same place and time, but nothing
+   says they will happen: at those places at most 5 of the 50 ensemble
+   members reach even 100 mm on the day concerned, at one of them none
+   reaches 50 mm, and no observation exists yet to check against.
+   DECISIONS D34.
+
 Things the checks found and changed: a "1 mm" probability layer was built and
 dropped because the source data's packing cannot resolve it (D20); faint
 speckle on the first map turned out to be packing noise (D15); the colour scale

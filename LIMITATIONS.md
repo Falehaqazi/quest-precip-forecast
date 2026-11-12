@@ -132,10 +132,16 @@ Introduced by the fixes made after that pass:
 - **One deterministic forecast.** No uncertainty is shown. Beyond a few days a
   single run's precipitation placement is not reliable; the map does not tell
   you that, and it shows day 15 with the same confidence as hour 3.
-- **Large values are shown as they come.** The 2026-11-10 00z run contains up
-  to 297 mm in one 6 h interval for one cell (15.25° N, 82.75° E, +222–228 h).
-  The neighbouring cells are consistent with it, so it is model output and not
-  a decoding artefact, but I have no way to say whether it is realistic.
+- **The largest values are real model output and probably not real weather.**
+  The four largest interval amounts of the 2026-11-12 00z run (361, 240, 232
+  and 217 mm in 6 h, between +168 and +288 h) were checked: Open-Meteo, on the
+  same run, gives 360.6, 240.0, 232.2 and 216.6 mm for the same cell and hours,
+  and ECMWF's 0.1° product gives the same or nearly the same value at the
+  nearest point. So they are not decoding or processing errors. But for the
+  day concerned, at most 5 of the 50 ensemble members reach 100 mm at those
+  cells, and at one cell none reaches 50 mm. They are one forecast's placement
+  of a storm a week or more ahead. Whether anything like them happens could
+  not be checked: the dates are in the future. DECISIONS D34.
 - **Quantisation.** Source `tp` is packed in 12 bits. In the 2026-11-10 00z run
   the packing step was 0.03 mm at +3 h, 0.06 mm from +6 h, 0.12 mm from +18 h
   and 0.24 mm from +120 h (it depends on each field's maximum, so other runs

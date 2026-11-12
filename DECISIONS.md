@@ -531,3 +531,31 @@ Each entry: the choice, the alternative, why. Newest at the bottom.
 - **Corrected with this entry**: LIMITATIONS and SPEC §5.8 said the control was
   absent for unknown reasons, and LIMITATIONS said the rate map was not part of
   the ensemble. Both were wrong.
+
+## D34. The largest values were traced to ECMWF's forecast; they are shown unchanged
+- **Checked** (deterministic run 2026-11-12 00z; the four largest per-interval
+  amounts, taking one per storm):
+
+  | Amount in 6 h | When (lead) | Where | Open-Meteo, same run, same cell and hours | ECMWF 0.1° product, nearest point | 24 h total there | Of 50 members, reaching 50 / 100 mm that day | ECMWF's own probability of ≥ 100 mm |
+  |---|---|---|---|---|---|---|---|
+  | 360.8 mm | 19 Nov 00–06 UTC (+168–174 h) | 11.00° S, 167.00° W | 360.6 mm | 360.8 mm | 465 mm | 11 / 5 | 11.8 % |
+  | 240.2 mm | 20 Nov 18–24 UTC (+210–216 h) | 12.00° S, 168.00° W | 240.0 mm | 240.2 mm | 318 mm | 7 / 2 | 6.0 % |
+  | 232.4 mm | 23 Nov 18–24 UTC (+282–288 h) | 26.75° N, 130.00° E | 232.2 mm | 215.6 mm | 246 mm | 0 / 0 | 2.0 % |
+  | 216.6 mm | 19 Nov 12–18 UTC (+180–186 h) | 18.25° N, 84.75° E | 216.6 mm | 218.3 mm | 338 mm | 7 / 1 | 3.6 % |
+
+  Open-Meteo's metadata showed it was serving the same run. Its figures are sums
+  of six hourly values rounded to 0.1 mm.
+- **What this establishes**: the numbers on the map are the numbers in ECMWF's
+  deterministic forecast. Two other routes to the same forecast give the same
+  values, one of them ECMWF's own product at another resolution.
+- **What it does not establish**: that such rain will fall. Open-Meteo and the
+  0.1° product are the same forecast, not a second opinion. The ensemble is the
+  nearest thing to one, and it mostly disagrees: the median member has 1 to
+  11 mm on those days. ECMWF's 2.0 % for the third case is one member in 51,
+  i.e. only the control itself (D33).
+- **Choice**: show the values as they are, with no cap and no flag. Capping
+  would hide what the model says; a flag would need a threshold I cannot
+  justify. The ensemble layers are the page's answer to "how seriously should I
+  take this".
+- **Not possible**: comparison with observations. All four dates were in the
+  future when this was written.
